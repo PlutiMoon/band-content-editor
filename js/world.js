@@ -2,8 +2,8 @@
 // WORLD CONFIG TAB — game config, locations, NPCs
 // ════════════════════════════════════════════
 import { STAT_NAMES } from './config.js';
-import { data, worldSection, selectedLocationIdx, selectedNPCIdx,
-  setWorldSection, setSelectedLocationIdx, setSelectedNPCIdx, setData } from './state.js';
+import { data, worldSection, selectedLocationIdx, selectedNPCIdx, selectedMapIdx,
+  setWorldSection, setSelectedLocationIdx, setSelectedNPCIdx, setSelectedMapIdx, setData } from './state.js';
 import { saveDoc, toast, downloadJSON } from './core.js';
 import { fld, sel, esc } from './forms.js';
 
@@ -13,16 +13,20 @@ export function renderWorld() {
     <span class="hint">管理游戏参数 / 地点 / NPC</span>
     <button class="${worldSection==='config'?'btn-ok':'btn-accent'}" id="btn-sec-config">⚙ 游戏参数</button>
     <button class="${worldSection==='locations'?'btn-ok':'btn-accent'}" id="btn-sec-loc">📍 地点</button>
-    <button class="${worldSection==='npcs'?'btn-ok':'btn-accent'}" id="btn-sec-npc">👤 NPC</button>`;
-  document.getElementById('btn-sec-config').onclick = () => { setWorldSection('config'); setSelectedLocationIdx(-1); setSelectedNPCIdx(-1); renderWorld(); };
-  document.getElementById('btn-sec-loc').onclick = () => { setWorldSection('locations'); setSelectedLocationIdx(-1); setSelectedNPCIdx(-1); renderWorld(); };
-  document.getElementById('btn-sec-npc').onclick = () => { setWorldSection('npcs'); setSelectedLocationIdx(-1); setSelectedNPCIdx(-1); renderWorld(); };
+    <button class="${worldSection==='npcs'?'btn-ok':'btn-accent'}" id="btn-sec-npc">👤 NPC</button>
+    <button class="${worldSection==='maps'?'btn-ok':'btn-accent'}" id="btn-sec-maps">🗺 地图</button>`;
+  const resetSel = () => { setSelectedLocationIdx(-1); setSelectedNPCIdx(-1); setSelectedMapIdx(-1); };
+  document.getElementById('btn-sec-config').onclick = () => { setWorldSection('config'); resetSel(); renderWorld(); };
+  document.getElementById('btn-sec-loc').onclick = () => { setWorldSection('locations'); resetSel(); renderWorld(); };
+  document.getElementById('btn-sec-npc').onclick = () => { setWorldSection('npcs'); resetSel(); renderWorld(); };
+  document.getElementById('btn-sec-maps').onclick = () => { setWorldSection('maps'); resetSel(); renderWorld(); };
 
   const ct = document.getElementById('content');
   switch (worldSection) {
     case 'config': renderGameConfig(ct); break;
     case 'locations': renderLocations(ct); break;
     case 'npcs': renderNPCs(ct); break;
+    case 'maps': renderMaps(ct); break;
     default: renderGameConfig(ct);
   }
 }
@@ -147,6 +151,7 @@ function renderLocationDetail(ct) {
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
   html += fld('ID','loc_id',l.id);
   html += fld('名称','loc_name',l.name);
+  html += sel('所属地图','loc_map_id',l.map_id||'old_town', (data.maps||[]).map(m => [m.id, m.name||m.id]));
   html += fld('场景路径','loc_scene',l.scene_path||'');
   html += fld('触发X','loc_x',pos.x??0,'number');
   html += fld('触发Y','loc_y',pos.y??0,'number');
@@ -171,6 +176,7 @@ async function saveLocationDetail() {
   const l = data.locations[selectedLocationIdx];
   l.id = document.getElementById('loc_id').value.trim();
   l.name = document.getElementById('loc_name').value.trim();
+  l.map_id = document.getElementById('loc_map_id')?.value || 'old_town';
   l.scene_path = document.getElementById('loc_scene').value.trim();
   l.map_position = {
     x: parseFloat(document.getElementById('loc_x').value) || 0,
@@ -198,7 +204,7 @@ async function addLocation() {
   if (!id) return;
   if ((data.locations||[]).find(l => l.id === id)) { toast('该ID已存在', true); return; }
   const item = {
-    id, name: '新地点', scene_path: '', map_position: { x: 0, y: 240 },
+    id, name: '新地点', map_id: 'old_town', scene_path: '', map_position: { x: 0, y: 240 },
     building_rect: [0, 180, 60, 60], map_label_pos: { x: 0, y: 175 }
   };
   const newArr = [...(data.locations||[]), item];
@@ -285,6 +291,7 @@ function renderNPCDetail(ct) {
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
   html += fld('ID','npc_id',n.id);
   html += fld('名称','npc_name',n.name);
+  html += sel('所属地图','npc_map_id',n.map_id||'old_town', (data.maps||[]).map(m => [m.id, m.name||m.id]));
   html += fld('对话ID','npc_did',n.dialogue_id||'');
   html += fld('地图X','npc_x',pos.x??0,'number');
   html += fld('地图Y','npc_y',pos.y??0,'number');
@@ -303,6 +310,7 @@ async function saveNPCDetail() {
   const n = data.npcs[selectedNPCIdx];
   n.id = document.getElementById('npc_id').value.trim();
   n.name = document.getElementById('npc_name').value.trim();
+  n.map_id = document.getElementById('npc_map_id')?.value || 'old_town';
   n.dialogue_id = document.getElementById('npc_did').value.trim();
   n.map_position = {
     x: parseFloat(document.getElementById('npc_x').value) || 0,
@@ -320,7 +328,7 @@ async function addNPC() {
   const id = prompt('NPC ID（如 npc_drummer）：');
   if (!id) return;
   if ((data.npcs||[]).find(n => n.id === id)) { toast('该ID已存在', true); return; }
-  const item = { id, name: '新NPC', dialogue_id: '', map_position: { x: 0, y: 240 } };
+  const item = { id, name: '新NPC', map_id: 'old_town', dialogue_id: '', map_position: { x: 0, y: 240 } };
   const newArr = [...(data.npcs||[]), item];
   if (await saveDoc('npcs', 'npcs', newArr)) {
     setData({ ...data, npcs: newArr });
@@ -337,6 +345,213 @@ async function deleteNPC(i) {
   if (await saveDoc('npcs', 'npcs', newArr)) {
     setData({ ...data, npcs: newArr });
     if (selectedNPCIdx >= newArr.length) setSelectedNPCIdx(Math.max(0, newArr.length - 1));
+    renderWorld();
+  }
+}
+
+// ════════════════════════════════════════════
+// SECTION 4: MAPS
+// ════════════════════════════════════════════
+
+function _rgbInputs(prefix, arr, hasAlpha) {
+  const n = hasAlpha ? 4 : 3;
+  const labels = ['R','G','B','A'];
+  let h = `<div style="display:flex;gap:4px;align-items:center;">`;
+  for (let j = 0; j < n; j++) {
+    h += `<input type="number" id="${prefix}_${j}" value="${arr[j]??0}" step="0.01" min="0" max="1" style="width:52px;" title="${labels[j]}">`;
+  }
+  h += '</div>';
+  return h;
+}
+
+function _readColorArray(prefix, n) {
+  const arr = [];
+  for (let j = 0; j < n; j++) {
+    arr.push(parseFloat(document.getElementById(prefix+'_'+j)?.value) || 0);
+  }
+  return arr;
+}
+
+function renderMaps(ct) {
+  const q = (document.getElementById('search-map')?.value || '').toLowerCase();
+  let html = '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">';
+  html += '<button class="btn-ok" id="btn-add-map">+ 新增地图</button>';
+  html += '<input type="search" id="search-map" placeholder="搜索地图..." style="width:140px;">';
+  html += '<button id="btn-import-map">📥 导入</button>';
+  html += '<button id="btn-export-map">📤 导出</button>';
+  html += '</div>';
+
+  const allMaps = data.maps || [];
+  const maps = q ? allMaps.filter(m => (m.id+';'+m.name+';'+(m.scene_path||'')).toLowerCase().includes(q)) : allMaps;
+  if (maps.length === 0) {
+    html += '<p style="color:var(--text2);text-align:center;padding:40px;">暂无地图，点击「新增地图」</p>';
+    ct.innerHTML = html;
+  } else {
+    html += '<table><thead><tr><th>ID</th><th>名称</th><th>场景路径</th><th>尺寸</th><th></th></tr></thead><tbody>';
+    maps.forEach((m) => {
+      const i = allMaps.indexOf(m);
+      html += `<tr class="${i===selectedMapIdx?'selected':''}" data-map-idx="${i}">
+        <td>${esc(m.id)}</td><td>${esc(m.name)}</td><td style="font-size:11px;">${esc(m.scene_path||'')}</td>
+        <td>${m.width??960} × ${m.height??270}</td>
+        <td><button class="btn-sm btn-danger" data-map-del="${i}">✕</button></td></tr>`;
+    });
+    html += '</tbody></table>';
+    ct.innerHTML = html;
+
+    ct.querySelectorAll('tr[data-map-idx]').forEach(tr => {
+      tr.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON') return;
+        setSelectedMapIdx(parseInt(this.dataset.mapIdx));
+        renderMaps(ct);
+      });
+    });
+    ct.querySelectorAll('button[data-map-del]').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        deleteMap(parseInt(this.dataset.mapDel));
+      });
+    });
+  }
+
+  document.getElementById('btn-add-map').onclick = addMap;
+  document.getElementById('btn-import-map').onclick = () => window._importJSON('maps');
+  document.getElementById('btn-export-map').onclick = () => { downloadJSON('maps.json', data.maps); toast('已导出 maps.json'); };
+  document.getElementById('search-map').addEventListener('input', () => { setSelectedMapIdx(-1); renderMaps(ct); });
+
+  if (selectedMapIdx >= 0 && selectedMapIdx < allMaps.length) renderMapDetail(ct);
+}
+
+function renderMapDetail(ct) {
+  const m = data.maps[selectedMapIdx];
+  const existing = ct.querySelector('#mapDetail');
+  if (existing) existing.remove();
+
+  let html = '<div style="margin-top:16px;padding:16px;background:var(--bg2);border-radius:6px;" id="mapDetail">';
+  html += '<h3 style="color:var(--accent2);margin-bottom:8px;">编辑地图：'+esc(m.name)+'</h3>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+  html += fld('ID','map_id',m.id);
+  html += fld('名称','map_name',m.name);
+  html += fld('场景路径','map_scene',m.scene_path||'');
+  html += fld('宽度','map_w',m.width??960,'number');
+  html += fld('高度','map_h',m.height??270,'number');
+  html += fld('地面Y','map_gy',m.ground_y??240,'number');
+  html += fld('地面高度','map_gh',m.ground_h??30,'number');
+  html += '</div>';
+
+  html += '<div class="section-label">颜色</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+  html += `<div><label>天空色</label>${_rgbInputs('map_sky', m.sky_color||[0.12,0.15,0.22], false)}</div>`;
+  html += `<div><label>地面色</label>${_rgbInputs('map_gc', m.ground_color||[0.25,0.18,0.12], false)}</div>`;
+  html += `<div><label>地面线色</label>${_rgbInputs('map_glc', m.ground_line_color||[0.35,0.28,0.2], false)}</div>`;
+  html += `<div><label>建筑色</label>${_rgbInputs('map_bc', m.building_body_color||[0.18,0.18,0.2], false)}</div>`;
+  html += `<div><label>窗户色</label>${_rgbInputs('map_wc', m.building_window_color||[1.0,0.9,0.4,0.3], true)}</div>`;
+  html += '</div>';
+
+  html += '<div class="section-label">装饰建筑</div>';
+  html += `<div id="map_decor_c">`;
+  const decor = m.decor_buildings || [];
+  decor.forEach((b, i) => {
+    html += `<div class="inline-row">
+      X<input type="number" id="map_decor_${i}_0" value="${b[0]||0}" style="width:54px;">
+      Y<input type="number" id="map_decor_${i}_1" value="${b[1]||0}" style="width:54px;">
+      W<input type="number" id="map_decor_${i}_2" value="${b[2]||0}" style="width:54px;">
+      H<input type="number" id="map_decor_${i}_3" value="${b[3]||0}" style="width:54px;">
+      <button class="btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button></div>`;
+  });
+  html += `</div><button class="btn-sm" id="btn-add-decor">+ 添加装饰建筑</button>`;
+
+  html += '<div class="detail-actions"><button id="btn-cancel-map">取消</button><button class="btn-ok" id="btn-save-map">💾 保存到数据库</button></div>';
+  html += '</div>';
+  ct.insertAdjacentHTML('beforeend', html);
+
+  document.getElementById('btn-add-decor').onclick = function() {
+    const c = document.getElementById('map_decor_c');
+    const i = c.children.length;
+    const div = document.createElement('div'); div.className = 'inline-row';
+    div.innerHTML = `X<input type="number" id="map_decor_${i}_0" value="0" style="width:54px;">
+      Y<input type="number" id="map_decor_${i}_1" value="0" style="width:54px;">
+      W<input type="number" id="map_decor_${i}_2" value="0" style="width:54px;">
+      H<input type="number" id="map_decor_${i}_3" value="0" style="width:54px;">
+      <button class="btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button>`;
+    c.appendChild(div);
+  };
+
+  document.getElementById('btn-save-map').onclick = saveMapDetail;
+  document.getElementById('btn-cancel-map').onclick = () => {
+    setSelectedMapIdx(-1);
+    renderWorld();
+  };
+}
+
+async function saveMapDetail() {
+  const m = data.maps[selectedMapIdx];
+  m.id = document.getElementById('map_id').value.trim();
+  m.name = document.getElementById('map_name').value.trim();
+  m.scene_path = document.getElementById('map_scene').value.trim();
+  m.width = parseInt(document.getElementById('map_w').value) || 960;
+  m.height = parseInt(document.getElementById('map_h').value) || 270;
+  m.ground_y = parseInt(document.getElementById('map_gy').value) || 240;
+  m.ground_h = parseInt(document.getElementById('map_gh').value) || 30;
+  m.sky_color = _readColorArray('map_sky', 3);
+  m.ground_color = _readColorArray('map_gc', 3);
+  m.ground_line_color = _readColorArray('map_glc', 3);
+  m.building_body_color = _readColorArray('map_bc', 3);
+  m.building_window_color = _readColorArray('map_wc', 4);
+
+  const decor = [];
+  const c = document.getElementById('map_decor_c');
+  if (c) {
+    c.querySelectorAll('.inline-row').forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      if (inputs.length >= 4) {
+        decor.push([
+          parseInt(inputs[0].value) || 0,
+          parseInt(inputs[1].value) || 0,
+          parseInt(inputs[2].value) || 0,
+          parseInt(inputs[3].value) || 0
+        ]);
+      }
+    });
+  }
+  m.decor_buildings = decor;
+
+  if (!m.id) { toast('ID 不能为空', true); return; }
+  if (await saveDoc('maps', 'maps', data.maps)) {
+    toast('已保存地图');
+    renderWorld();
+  }
+}
+
+async function addMap() {
+  const id = prompt('地图ID（英文下划线，如 new_town）：');
+  if (!id) return;
+  if ((data.maps||[]).find(m => m.id === id)) { toast('该ID已存在', true); return; }
+  const item = {
+    id, name: '新地图', scene_path: '', width: 960, height: 270,
+    ground_y: 240, ground_h: 30,
+    sky_color: [0.12, 0.15, 0.22],
+    ground_color: [0.25, 0.18, 0.12],
+    ground_line_color: [0.35, 0.28, 0.2],
+    building_body_color: [0.18, 0.18, 0.2],
+    building_window_color: [1.0, 0.9, 0.4, 0.3],
+    decor_buildings: []
+  };
+  const newArr = [...(data.maps||[]), item];
+  if (await saveDoc('maps', 'maps', newArr)) {
+    setData({ ...data, maps: newArr });
+    setSelectedMapIdx(newArr.length - 1);
+    renderWorld();
+  }
+}
+
+async function deleteMap(i) {
+  const name = (data.maps||[])[i]?.name || '';
+  if (!confirm('确定删除地图「'+name+'」？')) return;
+  const newArr = [...(data.maps||[])];
+  newArr.splice(i, 1);
+  if (await saveDoc('maps', 'maps', newArr)) {
+    setData({ ...data, maps: newArr });
+    if (selectedMapIdx >= newArr.length) setSelectedMapIdx(Math.max(0, newArr.length - 1));
     renderWorld();
   }
 }

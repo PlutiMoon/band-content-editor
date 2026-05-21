@@ -6,10 +6,10 @@ import {
   data, userName, currentTab,
   selectedIdx, selectedDialogueIdx, selectedChatIdx,
   mobilePhoneView, mobileDialogueView, mobileEditingNodeIdx,
-  worldSection, selectedLocationIdx, selectedNPCIdx,
+  worldSection, selectedLocationIdx, selectedNPCIdx, selectedMapIdx,
   setCurrentTab, setSelectedIdx, setSelectedDialogueIdx, setSelectedChatIdx,
   setMobilePhoneView, setMobileDialogueView, setMobileEditingNodeIdx,
-  setWorldSection, setSelectedLocationIdx, setSelectedNPCIdx,
+  setWorldSection, setSelectedLocationIdx, setSelectedNPCIdx, setSelectedMapIdx,
   setData
 } from './js/state.js';
 import {
@@ -89,6 +89,7 @@ function switchTab(tab, silent) {
   setWorldSection('config');
   setSelectedLocationIdx(-1);
   setSelectedNPCIdx(-1);
+  setSelectedMapIdx(-1);
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   const sel = document.getElementById('mobile-tab-select');
   if (sel) sel.value = tab;
@@ -147,6 +148,7 @@ function importJSON(type) {
           if (type === 'phone') target = [...data.phone_chats];
           else if (type === 'actions') target = [...data.actions];
           else if (type === 'locations') target = [...data.locations];
+          else if (type === 'maps') target = [...data.maps];
           else if (type === 'npcs') target = [...data.npcs];
           else target = [...data.events];
 
@@ -161,6 +163,7 @@ function importJSON(type) {
             if (type === 'phone') setData({ ...data, phone_chats: target });
             else if (type === 'actions') setData({ ...data, actions: target });
             else if (type === 'locations') setData({ ...data, locations: target });
+            else if (type === 'maps') setData({ ...data, maps: target });
             else if (type === 'npcs') setData({ ...data, npcs: target });
             else setData({ ...data, events: target });
             imported++;
@@ -182,6 +185,8 @@ window.exportAll = function() {
   toast('已导出 events.json');
   Object.entries(data.dialogues).forEach(([id, obj]) => downloadJSON(id+'.json', obj));
   toast('已导出 '+Object.keys(data.dialogues).length+' 个对话文件');
+  downloadJSON('maps.json', data.maps || []);
+  toast('已导出 maps.json');
   downloadJSON('phone_chat.json', data.phone_chats);
   toast('已导出 phone_chat.json');
   toast('全部导出完成');

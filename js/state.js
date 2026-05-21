@@ -10,7 +10,7 @@ export let currentTab = 'actions';
 export let selectedIdx = -1;
 export let selectedDialogueIdx = -1;
 export let selectedChatIdx = -1;
-export let data = { actions: [], events: [], dialogues: {}, phone_chats: [], locations: [], npcs: [], game_config: {} };
+export let data = { actions: [], events: [], dialogues: {}, phone_chats: [], maps: [], locations: [], npcs: [], game_config: {} };
 export let userName = '';
 
 // ── Mobile navigation state ──
@@ -23,6 +23,7 @@ export let mobileEditingMsgIdx = -1;
 export let worldSection = 'config';  // 'config' | 'locations' | 'npcs'
 export let selectedLocationIdx = -1;
 export let selectedNPCIdx = -1;
+export let selectedMapIdx = -1;
 
 // ── Setters (for imports that need to reassign) ──
 export function setSupabase(v) { supabase = v; }
@@ -39,3 +40,4 @@ export function setMobileEditingMsgIdx(v) { mobileEditingMsgIdx = v; }
 export function setWorldSection(v) { worldSection = v; }
 export function setSelectedLocationIdx(v) { selectedLocationIdx = v; }
 export function setSelectedNPCIdx(v) { selectedNPCIdx = v; }
+export function setSelectedMapIdx(v) { selectedMapIdx = v; }

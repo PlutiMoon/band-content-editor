@@ -79,7 +79,7 @@ export async function pullFromDB() {
       toast('数据库为空，请先导入数据');
       return;
     }
-    const newData = { actions: [], events: [], dialogues: {}, phone_chats: [], locations: [], npcs: [], game_config: {} };
+    const newData = { actions: [], events: [], dialogues: {}, phone_chats: [], maps: [], locations: [], npcs: [], game_config: {} };
     rows.forEach(row => applyDocumentRowTo(row, newData));
     setData(newData);
     hideLoading();
@@ -111,6 +111,9 @@ function applyDocumentRowTo(row, target) {
     case 'npcs':
       target.npcs = Array.isArray(row.data) ? row.data : JSON.parse(row.data);
       break;
+    case 'maps':
+      target.maps = Array.isArray(row.data) ? row.data : JSON.parse(row.data);
+      break;
     case 'game_config':
       target.game_config = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
       break;
@@ -133,6 +136,7 @@ export function removeDocumentRow(row) {
       break;
     case 'phone_chats': setData({ ...data, phone_chats: [] }); break;
     case 'locations': setData({ ...data, locations: [] }); break;
+    case 'maps': setData({ ...data, maps: [] }); break;
     case 'npcs': setData({ ...data, npcs: [] }); break;
     case 'game_config': setData({ ...data, game_config: {} }); break;
   }
