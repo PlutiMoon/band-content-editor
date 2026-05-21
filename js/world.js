@@ -100,7 +100,8 @@ function renderLocations(ct) {
     ct.innerHTML = html;
   } else {
     html += '<table><thead><tr><th>ID</th><th>名称</th><th>场景路径</th><th>地图坐标</th><th></th></tr></thead><tbody>';
-    locs.forEach((l, i) => {
+    locs.forEach((l) => {
+      const i = allLocs.indexOf(l);
       const pos = l.map_position || {};
       html += `<tr class="${i===selectedLocationIdx?'selected':''}" data-loc-idx="${i}">
         <td>${esc(l.id)}</td><td>${esc(l.name)}</td><td style="font-size:11px;">${esc(l.scene_path||'')}</td>
@@ -130,7 +131,7 @@ function renderLocations(ct) {
   document.getElementById('btn-export-loc').onclick = () => { downloadJSON('locations.json', data.locations); toast('已导出 locations.json'); };
   document.getElementById('search-loc').addEventListener('input', () => { setSelectedLocationIdx(-1); renderLocations(ct); });
 
-  if (selectedLocationIdx >= 0 && selectedLocationIdx < locs.length) renderLocationDetail(ct);
+  if (selectedLocationIdx >= 0 && selectedLocationIdx < allLocs.length) renderLocationDetail(ct);
 }
 
 function renderLocationDetail(ct) {
@@ -239,7 +240,8 @@ function renderNPCs(ct) {
     ct.innerHTML = html;
   } else {
     html += '<table><thead><tr><th>ID</th><th>名称</th><th>对话ID</th><th>地图坐标</th><th></th></tr></thead><tbody>';
-    npcs.forEach((n, i) => {
+    npcs.forEach((n) => {
+      const i = allNpcs.indexOf(n);
       const pos = n.map_position || {};
       html += `<tr class="${i===selectedNPCIdx?'selected':''}" data-npc-idx="${i}">
         <td>${esc(n.id)}</td><td>${esc(n.name)}</td><td>${esc(n.dialogue_id||'')}</td>
@@ -269,7 +271,7 @@ function renderNPCs(ct) {
   document.getElementById('btn-export-npc').onclick = () => { downloadJSON('npcs.json', data.npcs); toast('已导出 npcs.json'); };
   document.getElementById('search-npc').addEventListener('input', () => { setSelectedNPCIdx(-1); renderNPCs(ct); });
 
-  if (selectedNPCIdx >= 0 && selectedNPCIdx < npcs.length) renderNPCDetail(ct);
+  if (selectedNPCIdx >= 0 && selectedNPCIdx < allNpcs.length) renderNPCDetail(ct);
 }
 
 function renderNPCDetail(ct) {
