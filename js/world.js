@@ -43,6 +43,8 @@ function renderGameConfig(ct) {
   html += fld('初始金钱','gc_starting_money',gc.starting_money??500,'number');
   html += fld('属性下限','gc_stat_min',gc.stat_min??0,'number');
   html += fld('属性上限','gc_stat_max',gc.stat_max??100,'number');
+  html += sel('初始地图','gc_starting_map',gc.starting_map||'old_town',
+    (data.maps||[]).map(m => [m.id, m.name||m.id]));
   html += sel('初始地点','gc_starting_location',gc.starting_location||'rental_room',
     (data.locations||[]).map(l => [l.id, l.name||l.id]));
   html += fld('初始X坐标','gc_spawn_x',gc.starting_spawn?.x??100,'number');
@@ -68,6 +70,7 @@ async function saveGameConfig() {
   gc.starting_money = parseInt(document.getElementById('gc_starting_money').value) || 500;
   gc.stat_min = parseInt(document.getElementById('gc_stat_min').value) || 0;
   gc.stat_max = parseInt(document.getElementById('gc_stat_max').value) || 100;
+  gc.starting_map = document.getElementById('gc_starting_map')?.value || 'old_town';
   gc.starting_location = document.getElementById('gc_starting_location').value;
   gc.starting_spawn = {
     x: parseFloat(document.getElementById('gc_spawn_x').value) || 100,
