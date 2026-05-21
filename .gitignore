@@ -1,1 +1,3 @@
 .vercel
+*.png
+*.png.import
