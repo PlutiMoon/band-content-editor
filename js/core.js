@@ -79,7 +79,7 @@ export async function pullFromDB() {
       toast('数据库为空，请先导入数据');
       return;
     }
-    const newData = { actions: [], events: [], dialogues: {}, phone_chats: [] };
+    const newData = { actions: [], events: [], dialogues: {}, phone_chats: [], locations: [], npcs: [], game_config: {} };
     rows.forEach(row => applyDocumentRowTo(row, newData));
     setData(newData);
     hideLoading();
@@ -105,6 +105,15 @@ function applyDocumentRowTo(row, target) {
     case 'phone_chats':
       target.phone_chats = Array.isArray(row.data) ? row.data : JSON.parse(row.data);
       break;
+    case 'locations':
+      target.locations = Array.isArray(row.data) ? row.data : JSON.parse(row.data);
+      break;
+    case 'npcs':
+      target.npcs = Array.isArray(row.data) ? row.data : JSON.parse(row.data);
+      break;
+    case 'game_config':
+      target.game_config = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      break;
   }
 }
 
@@ -123,6 +132,9 @@ export function removeDocumentRow(row) {
       setSelectedDialogueIdx(-1);
       break;
     case 'phone_chats': setData({ ...data, phone_chats: [] }); break;
+    case 'locations': setData({ ...data, locations: [] }); break;
+    case 'npcs': setData({ ...data, npcs: [] }); break;
+    case 'game_config': setData({ ...data, game_config: {} }); break;
   }
 }
 
@@ -167,7 +179,9 @@ export function isEditing() {
          document.getElementById('msgEditor') ||
          document.getElementById('bottom-sheet-overlay') ||
          document.getElementById('btn-node-save') ||
-         document.getElementById('btn-node-save-m');
+         document.getElementById('btn-node-save-m') ||
+         document.getElementById('locDetail') ||
+         document.getElementById('npcDetail');
 }
 
 export function handleRealtimeChange(payload) {

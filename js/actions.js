@@ -1,7 +1,8 @@
 // ════════════════════════════════════════════
 // ACTIONS TAB
 // ════════════════════════════════════════════
-import { STAT_NAMES, LOCATION_LABELS, NPC_IDS, NPC_NAMES } from './config.js';
+import { STAT_NAMES } from './config.js';
+import { getLocationOptions, getLocationLabel, getNPCLabel } from './forms.js';
 import { data, selectedIdx, setSelectedIdx, setData } from './state.js';
 import { saveDoc, toast, downloadJSON, buildToolbar, isMobile } from './core.js';
 import {
@@ -40,7 +41,7 @@ export function renderActions() {
       const fx = effectsSummary(a.effects || {});
       html += `<tr class="${i===selectedIdx?'selected':''}" data-idx="${i}">
         <td>${esc(a.id)}</td><td>${esc(a.name)}</td>
-        <td>${LOCATION_LABELS[a.location]||a.location||''}</td>
+        <td>${getLocationLabel(a.location)}</td>
         <td>${a.time_cost ?? 1}</td><td>${a.max_per_day || '—'}</td>
         <td>${fx}</td>
         <td><button class="btn-sm btn-danger" data-del="${i}">✕</button></td></tr>`;
@@ -72,7 +73,7 @@ function effectsSummary(fx) {
   const parts = [];
   if (fx.money) parts.push('💰'+fx.money);
   if (fx.stats) fx.stats.forEach(s => parts.push(STAT_NAMES[s.stat]+(s.delta>0?'+':'')+s.delta));
-  if (fx.relationships) fx.relationships.forEach(r => parts.push((NPC_NAMES[NPC_IDS.indexOf(r.npc_id)]||r.npc_id)+(r.delta>0?'+':'')+r.delta));
+  if (fx.relationships) fx.relationships.forEach(r => parts.push(getNPCLabel(r.npc_id)+(r.delta>0?'+':'')+r.delta));
   if (fx.flags) parts.push('🚩'+fx.flags.join(','));
   if (fx.sleep) parts.push('😴');
   if (fx.dialogue) parts.push('💬'+fx.dialogue);
@@ -92,7 +93,7 @@ function renderActionDetail() {
   html += fld('ID','act_id',a.id);
   html += fld('名称','act_name',a.name);
   html += fld('描述','act_desc',a.description||'');
-  html += sel('地点','act_loc',a.location||'', Object.entries(LOCATION_LABELS).map(([k,v])=>[k,v]));
+  html += sel('地点','act_loc',a.location||'', getLocationOptions());
   html += fld('消耗时段','act_tc',a.time_cost??1,'number');
   html += fld('每日上限','act_mpd',a.max_per_day??1,'number');
   html += '</div>';

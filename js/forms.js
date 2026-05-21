@@ -1,7 +1,58 @@
 // ════════════════════════════════════════════
 // FORM WIDGETS & VALIDATION
 // ════════════════════════════════════════════
-import { STAT_NAMES, PHASES, OPS, NPC_IDS, NPC_NAMES } from './config.js';
+import { STAT_NAMES, PHASES, OPS, NPC_IDS, NPC_NAMES, LOCATION_LABELS } from './config.js';
+import { data } from './state.js';
+
+// ── Dynamic option helpers (merge hardcoded defaults with runtime data) ──
+export function getLocationOptions() {
+  const seen = new Set();
+  const pairs = [];
+  for (const l of (data.locations || [])) {
+    if (l.id && !seen.has(l.id)) {
+      seen.add(l.id);
+      pairs.push([l.id, l.name || l.id]);
+    }
+  }
+  for (const [id, name] of Object.entries(LOCATION_LABELS)) {
+    if (!seen.has(id)) {
+      seen.add(id);
+      pairs.push([id, name]);
+    }
+  }
+  return pairs;
+}
+
+export function getNPCPairs() {
+  const seen = new Set();
+  const pairs = [];
+  for (const n of (data.npcs || [])) {
+    if (n.id && !seen.has(n.id)) {
+      seen.add(n.id);
+      pairs.push([n.id, n.name || n.id]);
+    }
+  }
+  for (let i = 0; i < NPC_IDS.length; i++) {
+    if (!seen.has(NPC_IDS[i])) {
+      seen.add(NPC_IDS[i]);
+      pairs.push([NPC_IDS[i], NPC_NAMES[i]]);
+    }
+  }
+  return pairs;
+}
+
+export function getLocationLabel(id) {
+  const loc = (data.locations || []).find(l => l.id === id);
+  if (loc) return loc.name || id;
+  return LOCATION_LABELS[id] || id || '';
+}
+
+export function getNPCLabel(id) {
+  const npc = (data.npcs || []).find(n => n.id === id);
+  if (npc) return npc.name || id;
+  const idx = NPC_IDS.indexOf(id);
+  return idx >= 0 ? NPC_NAMES[idx] : (id || '');
+}
 
 // ── HTML escape ──
 export function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -108,11 +159,15 @@ export function renderMoneyReq(prefix, label, value) {
 export function readMoneyReq(prefix) { const op=document.getElementById(prefix+'_op')?.value, v=parseInt(document.getElementById(prefix+'_v')?.value); if(isNaN(v)) return null; return {op, value:v}; }
 
 // ── Relationship deltas ──
+function _npcOptions(selectedId) {
+  return getNPCPairs().map(([id, name]) => `<option value="${id}" ${id===selectedId?'selected':''}>${esc(name)}</option>`).join('');
+}
+
 export function renderRelDeltas(prefix, arr) {
   let h = `<div><label>关系变化</label><div id="${prefix}_c">`;
   arr.forEach((r,i) => {
     h += `<div class="inline-row">
-      <select id="${prefix}_${i}_n">${NPC_IDS.map((id,j)=>`<option value="${id}" ${id===r.npc_id?'selected':''}>${NPC_NAMES[j]}</option>`).join('')}</select>
+      <select id="${prefix}_${i}_n">${_npcOptions(r.npc_id)}</select>
       <input type="number" id="${prefix}_${i}_v" value="${r.delta||0}" placeholder="变化值" style="width:80px;">
       <button class="btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button></div>`;
   });
@@ -123,7 +178,7 @@ window._addRelD = function(prefix) {
   const c = document.getElementById(prefix+'_c'); if (!c) return;
   const i = c.children.length;
   const div = document.createElement('div'); div.className = 'inline-row';
-  div.innerHTML = `<select id="${prefix}_${i}_n">${NPC_IDS.map((id,j)=>`<option value="${id}">${NPC_NAMES[j]}</option>`).join('')}</select>
+  div.innerHTML = `<select id="${prefix}_${i}_n">${_npcOptions('')}</select>
     <input type="number" id="${prefix}_${i}_v" value="0" placeholder="变化值" style="width:80px;">
     <button class="btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button>`;
   c.appendChild(div);
@@ -143,7 +198,7 @@ export function renderRelReqs(prefix, arr) {
   let h = `<div><label>关系要求</label><div id="${prefix}_c">`;
   arr.forEach((r,i) => {
     h += `<div class="inline-row">
-      <select id="${prefix}_${i}_n">${NPC_IDS.map((id,j)=>`<option value="${id}" ${id===r.npc_id?'selected':''}>${NPC_NAMES[j]}</option>`).join('')}</select>
+      <select id="${prefix}_${i}_n">${_npcOptions(r.npc_id)}</select>
       <select id="${prefix}_${i}_op" style="width:70px;">${OPS.map(o=>`<option value="${o}" ${o===r.op?'selected':''}>${o}</option>`).join('')}</select>
       <input type="number" id="${prefix}_${i}_v" value="${r.value||0}" placeholder="值" style="width:80px;">
       <button class="btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button></div>`;
@@ -155,7 +210,7 @@ window._addRelR = function(prefix) {
   const c = document.getElementById(prefix+'_c'); if (!c) return;
   const i = c.children.length;
   const div = document.createElement('div'); div.className = 'inline-row';
-  div.innerHTML = `<select id="${prefix}_${i}_n">${NPC_IDS.map((id,j)=>`<option value="${id}">${NPC_NAMES[j]}</option>`).join('')}</select>
+  div.innerHTML = `<select id="${prefix}_${i}_n">${_npcOptions('')}</select>
     <select id="${prefix}_${i}_op" style="width:70px;">${OPS.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>
     <input type="number" id="${prefix}_${i}_v" value="0" placeholder="值" style="width:80px;">
     <button class="btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button>`;

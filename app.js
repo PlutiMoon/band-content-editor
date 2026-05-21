@@ -6,8 +6,10 @@ import {
   data, userName, currentTab,
   selectedIdx, selectedDialogueIdx, selectedChatIdx,
   mobilePhoneView, mobileDialogueView, mobileEditingNodeIdx,
+  worldSection, selectedLocationIdx, selectedNPCIdx,
   setCurrentTab, setSelectedIdx, setSelectedDialogueIdx, setSelectedChatIdx,
   setMobilePhoneView, setMobileDialogueView, setMobileEditingNodeIdx,
+  setWorldSection, setSelectedLocationIdx, setSelectedNPCIdx,
   setData
 } from './js/state.js';
 import {
@@ -20,6 +22,7 @@ import { renderActions } from './js/actions.js';
 import { renderEvents } from './js/events.js';
 import { renderDialogues } from './js/dialogues.js';
 import { renderPhone } from './js/phone.js';
+import { renderWorld } from './js/world.js';
 
 // ════════════════════════════════════════════
 // APP INIT
@@ -83,6 +86,9 @@ function switchTab(tab, silent) {
   setMobilePhoneView('list');
   setMobileDialogueView('list');
   setMobileEditingNodeIdx(-1);
+  setWorldSection('config');
+  setSelectedLocationIdx(-1);
+  setSelectedNPCIdx(-1);
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   const sel = document.getElementById('mobile-tab-select');
   if (sel) sel.value = tab;
@@ -96,6 +102,7 @@ function switchTab(tab, silent) {
     case 'events': renderEvents(); break;
     case 'dialogues': renderDialogues(); break;
     case 'phone': renderPhone(); break;
+    case 'world': renderWorld(); break;
   }
 }
 window._switchTab = switchTab;
@@ -128,12 +135,19 @@ function importJSON(type) {
             setData({ ...data, dialogues: { ...data.dialogues, [id]: obj } });
             imported++;
           }
+        } else if (type === 'game_config') {
+          if (await saveDoc('game_config', 'game_config', obj)) {
+            setData({ ...data, game_config: obj });
+            imported++;
+          }
         } else {
           const idKey = type === 'phone' ? 'chat_id' : 'id';
           const arr = Array.isArray(obj) ? obj : [obj];
           let target;
           if (type === 'phone') target = [...data.phone_chats];
           else if (type === 'actions') target = [...data.actions];
+          else if (type === 'locations') target = [...data.locations];
+          else if (type === 'npcs') target = [...data.npcs];
           else target = [...data.events];
 
           arr.forEach(item => {
@@ -146,6 +160,8 @@ function importJSON(type) {
           if (await saveDoc(docId, docType, target)) {
             if (type === 'phone') setData({ ...data, phone_chats: target });
             else if (type === 'actions') setData({ ...data, actions: target });
+            else if (type === 'locations') setData({ ...data, locations: target });
+            else if (type === 'npcs') setData({ ...data, npcs: target });
             else setData({ ...data, events: target });
             imported++;
           }
