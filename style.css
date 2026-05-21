@@ -107,15 +107,17 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 @media (max-width: 768px) {
   :root { font-size: 15px; }
 
-  /* Stack: main first, sidebar as bottom tab bar */
-  #app { flex-direction: column !important; }
+  /* Stack: main first, sidebar fixed at bottom */
+  #app { flex-direction: column !important; height: 100dvh; }
   #sidebar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     width: 100%; min-width: 0; max-height: 56px; height: auto; flex-shrink: 0;
-    flex-direction: row; align-items: center; padding: 0 4px;
-    border-right: none; border-top: 1px solid var(--border);
-    order: 2; /* push to bottom */
-    gap: 2px; overflow-x: auto;
+    flex-direction: row; align-items: center; padding: 6px 4px;
+    border-right: none; border-top: 1px solid var(--border); border-radius: 0;
+    gap: 2px; overflow-x: auto; background: var(--bg2);
+    order: 2;
   }
+  #main { padding-bottom: 56px; }
   #sidebar h2 { display: none; }
   #sidebar > div { display: flex; flex-direction: row; gap: 6px; align-items: center; flex: 1; }
   .tab-btn { display: none; }
@@ -195,13 +197,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
     flex-shrink: 0; display: inline-block;
   }
   .online-names {
-    display: none; position: absolute; bottom: 58px; left: 0; right: 0;
+    display: none; position: fixed; bottom: 56px; left: 0; right: 0;
     background: var(--bg3); padding: 6px 12px; font-size: 0.75rem;
-    color: var(--text); text-align: center; z-index: 10;
+    color: var(--text); text-align: center; z-index: 51;
     border-top: 1px solid var(--border); white-space: nowrap; overflow-x: auto;
   }
   .online-names.show { display: block; }
-  #sidebar { position: relative; } /* anchor for .online-names absolute positioning */
 
   /* ── Mobile chat list (conversation cards) ── */
   .mobile-chat-list { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
