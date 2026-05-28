@@ -47,7 +47,7 @@ BEGIN
     RETURN FALSE;
   END IF;
 
-  RETURN stored_hash = crypt(input_key, stored_hash);
+  RETURN stored_hash = extensions.crypt(input_key, stored_hash);
 END;
 $$;
 
