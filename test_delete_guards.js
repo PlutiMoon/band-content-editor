@@ -4,7 +4,9 @@ const { pathToFileURL } = require('url');
 
 async function main() {
   const mod = await import(pathToFileURL(path.join(__dirname, 'js', 'delete_guards.js')).href);
+  const graphMod = await import(pathToFileURL(path.join(__dirname, 'js', 'relationship_graph.js')).href);
   const { findDeleteReferences, formatDeleteBlocker, formatReferenceSummary, rewriteContentReferences } = mod;
+  const { buildContentGraph, filterContentGraph } = graphMod;
 
   const project = {
     actions: [
@@ -105,6 +107,25 @@ async function main() {
   assert.strictEqual(npcProject.events[1].conditions.relationships[0].npc_id, 'npc_b');
   assert.strictEqual(npcProject.events[1].effects.relationships[0].npc_id, 'npc_b');
   assert.strictEqual(npcProject.dialogues.dlg_intro.nodes[0].effects.relationships[0].npc_id, 'npc_b');
+
+  const graph = buildContentGraph(project);
+  const nodeKeys = new Set(graph.nodes.map(node => node.key));
+  for (const key of ['action:practice', 'event:after_practice', 'dialogue:dlg_intro', 'location:room', 'map:town', 'npc:npc_a']) {
+    assert(nodeKeys.has(key), `graph must include ${key}`);
+  }
+  const edgeKeys = new Set(graph.edges.map(edge => `${edge.source}->${edge.target}`));
+  for (const key of [
+    'map:town->location:room',
+    'location:room->action:practice',
+    'action:practice->event:after_practice',
+    'event:after_practice->dialogue:dlg_intro',
+    'npc:npc_a->dialogue:dlg_intro',
+  ]) {
+    assert(edgeKeys.has(key), `graph must include edge ${key}`);
+  }
+  const eventGraph = filterContentGraph(graph, 'event');
+  assert(eventGraph.nodes.some(node => node.kind === 'event'));
+  assert(eventGraph.edges.every(edge => edge.source.startsWith('event:') || edge.target.startsWith('event:')));
 }
 
 main()
