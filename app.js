@@ -29,6 +29,8 @@ import { createSnapshot } from './js/snapshot_store.js';
 import { renderReferences } from './js/references.js';
 import { renderReleases } from './js/releases.js';
 import { createReleaseRecord } from './js/release_store.js';
+import { renderAudit } from './js/audit.js';
+import { recordAuditEntry } from './js/audit_store.js';
 import { buildPublishGate, formatPublishGateMessage } from './js/publish_gate.js';
 import {
   validateAction,
@@ -125,6 +127,7 @@ function switchTab(tab, silent) {
     case 'snapshots': renderSnapshots(); break;
     case 'references': renderReferences(); break;
     case 'releases': renderReleases(); break;
+    case 'audit': renderAudit(); break;
   }
 }
 window._switchTab = switchTab;
@@ -289,6 +292,13 @@ window.exportAll = function() {
     user: userName,
     files,
     data,
+  });
+  recordAuditEntry({
+    action: 'release_export',
+    doc_id: releaseRecord.version,
+    doc_type: 'release',
+    user: userName,
+    summary: `files:${files.length}; snapshot:${releaseSnapshot.id}`,
   });
   downloadJSON('actions.json', data.actions);
   toast('已导出 actions.json');

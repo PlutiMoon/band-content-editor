@@ -14,6 +14,7 @@ function createMemoryStorage() {
 async function main() {
   const mod = await import(pathToFileURL(path.join(__dirname, 'js', 'snapshot_store.js')).href);
   const releaseMod = await import(pathToFileURL(path.join(__dirname, 'js', 'release_store.js')).href);
+  const auditMod = await import(pathToFileURL(path.join(__dirname, 'js', 'audit_store.js')).href);
   const {
     SNAPSHOT_KEY,
     createSnapshot,
@@ -28,6 +29,14 @@ async function main() {
     deleteReleaseRecord,
     exportReleaseRecordPayload,
   } = releaseMod;
+  const {
+    AUDIT_LOG_KEY,
+    recordAuditEntry,
+    listAuditEntries,
+    deleteAuditEntry,
+    clearAuditEntries,
+    exportAuditEntryPayload,
+  } = auditMod;
 
   const storage = createMemoryStorage();
   const first = createSnapshot(
@@ -125,6 +134,56 @@ async function main() {
 
   releaseStorage.setItem(RELEASE_RECORDS_KEY, '{not json');
   assert.deepStrictEqual(listReleaseRecords(releaseStorage), []);
+
+  const auditStorage = createMemoryStorage();
+  const audit = recordAuditEntry({
+    action: 'save',
+    doc_id: 'actions',
+    doc_type: 'actions',
+    user: 'Alice',
+    summary: 'array:1',
+  }, { storage: auditStorage, now: () => 5000 });
+
+  assert(audit.id);
+  assert.strictEqual(audit.action, 'save');
+  assert.strictEqual(audit.doc_id, 'actions');
+  assert.strictEqual(audit.doc_type, 'actions');
+  assert.strictEqual(audit.user, 'Alice');
+  assert.strictEqual(audit.summary, 'array:1');
+  assert.strictEqual(listAuditEntries(auditStorage).length, 1);
+
+  audit.summary = 'mutated';
+  assert.strictEqual(listAuditEntries(auditStorage)[0].summary, 'array:1');
+
+  for (let i = 0; i < 205; i++) {
+    recordAuditEntry({
+      action: 'delete',
+      doc_id: `dialogues/dlg_${i}`,
+      doc_type: 'dialogues',
+      user: 'Bob',
+      summary: `delete ${i}`,
+    }, { storage: auditStorage, now: () => 6000 + i });
+  }
+
+  const entries = listAuditEntries(auditStorage);
+  assert.strictEqual(entries.length, 200);
+  assert.strictEqual(entries[0].created_at, 6204);
+  assert.strictEqual(entries[199].created_at, 6005);
+
+  const auditPayload = exportAuditEntryPayload(entries[0]);
+  assert(auditPayload.audit);
+  assert.strictEqual(auditPayload.audit.id, entries[0].id);
+
+  const auditId = entries[0].id;
+  assert.strictEqual(deleteAuditEntry(auditId, auditStorage), true);
+  assert(!listAuditEntries(auditStorage).some(item => item.id === auditId));
+  assert.strictEqual(deleteAuditEntry('missing', auditStorage), false);
+
+  clearAuditEntries(auditStorage);
+  assert.deepStrictEqual(listAuditEntries(auditStorage), []);
+
+  auditStorage.setItem(AUDIT_LOG_KEY, '{not json');
+  assert.deepStrictEqual(listAuditEntries(auditStorage), []);
 }
 
 main()

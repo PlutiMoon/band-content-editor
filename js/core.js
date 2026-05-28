@@ -3,6 +3,7 @@
 // ════════════════════════════════════════════
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { recordAuditEntry } from './audit_store.js';
 import {
   supabase, clientId, data, userName, editorAccessKey,
   currentTab, selectedIdx, selectedDialogueIdx, selectedChatIdx,
@@ -183,6 +184,12 @@ export function removeDocumentRow(row) {
   }
 }
 
+function summarizeDocData(docData) {
+  if (Array.isArray(docData)) return `array:${docData.length}`;
+  if (docData && typeof docData === 'object') return `object:${Object.keys(docData).length}`;
+  return typeof docData;
+}
+
 export async function saveDoc(id, type, docData) {
   if (!supabase) { toast('未连接数据库', true); return false; }
   try {
@@ -197,6 +204,13 @@ export async function saveDoc(id, type, docData) {
       handleAccessError(error, '保存失败');
       return false;
     }
+    recordAuditEntry({
+      action: 'save',
+      doc_id: id,
+      doc_type: type,
+      user: userName,
+      summary: summarizeDocData(docData),
+    });
     return true;
   } catch (e) {
     handleAccessError(e, '保存失败');
@@ -216,6 +230,13 @@ export async function deleteDoc(id) {
       handleAccessError(error, '删除失败');
       return false;
     }
+    recordAuditEntry({
+      action: 'delete',
+      doc_id: id,
+      doc_type: id.startsWith('dialogues/') ? 'dialogues' : 'document',
+      user: userName,
+      summary: 'delete',
+    });
     return true;
   } catch (e) {
     handleAccessError(e, '删除失败');
