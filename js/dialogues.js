@@ -13,12 +13,15 @@ import {
   validateDialogueNode
 } from './forms.js';
 import { formatDeleteBlocker, formatReferenceSummary } from './delete_guards.js';
+import { createNPCDialogueTemplate } from './content_templates.js';
 
 export function renderDialogues() {
   const tb = document.getElementById('toolbar');
   const allKeys = Object.keys(data.dialogues);
   tb.innerHTML = buildToolbar({ icon: '💬', label: '对话编辑器', unit: '对话', count: allKeys.length, id: 'dialogue', addLabel: '新建对话', exportLabel: '全部导出' });
+  tb.insertAdjacentHTML('beforeend', '<button class="btn-sm" id="btn-template-npc-dialogue">NPC对话模板</button>');
   document.getElementById('btn-add-dialogue').onclick = addDialogue;
+  document.getElementById('btn-template-npc-dialogue').onclick = addNPCDialogueFromTemplate;
   document.getElementById('btn-import-dialogue').onclick = importDialogueFiles;
   document.getElementById('btn-export-dialogue').onclick = exportAllDialogues;
 
@@ -118,6 +121,24 @@ async function addDialogue() {
     setSelectedDialogueIdx(Object.keys(data.dialogues).indexOf(id));
     renderDialogues();
     toast('已创建：'+id);
+  }
+}
+
+async function addNPCDialogueFromTemplate() {
+  const npcId = prompt('NPC ID：', data.npcs?.[0]?.id || '');
+  if (!npcId) return;
+  const id = prompt('对话ID（英文下划线，如 dlg_' + npcId + '）：', 'dlg_' + npcId);
+  if (!id) return;
+  try {
+    const obj = createNPCDialogueTemplate(data, { id, npcId });
+    if (await saveDoc('dialogues/'+id, 'dialogues', obj)) {
+      setData({ ...data, dialogues: { ...data.dialogues, [id]: obj } });
+      setSelectedDialogueIdx(Object.keys(data.dialogues).indexOf(id));
+      renderDialogues();
+      toast('已创建NPC对话模板：'+id);
+    }
+  } catch (e) {
+    toast(e.message || '创建模板失败', true);
   }
 }
 

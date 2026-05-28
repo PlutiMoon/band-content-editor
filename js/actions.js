@@ -17,11 +17,14 @@ import {
 } from './forms.js';
 import { formatDeleteBlocker, formatReferenceSummary, rewriteContentReferences } from './delete_guards.js';
 import { confirmReferenceRewrite, saveReferenceMigration } from './reference_migrations.js';
+import { createActionTemplate } from './content_templates.js';
 
 export function renderActions() {
   const tb = document.getElementById('toolbar');
   tb.innerHTML = buildToolbar({ icon: '⚡', label: '行动列表', unit: '行动', count: data.actions.length, id: 'action', addLabel: '新增', exportLabel: '导出文件' });
+  tb.insertAdjacentHTML('beforeend', '<button class="btn-sm" id="btn-template-action">模板行动</button>');
   document.getElementById('btn-add-action').onclick = addAction;
+  document.getElementById('btn-template-action').onclick = addActionFromTemplate;
   document.getElementById('btn-import-action').onclick = () => window._importJSON('actions');
   document.getElementById('btn-export-action').onclick = exportAction;
 
@@ -182,6 +185,23 @@ async function addAction() {
     setData({ ...data, actions: newArr });
     setSelectedIdx(newArr.length - 1);
     renderActions();
+  }
+}
+
+async function addActionFromTemplate() {
+  const id = prompt('模板行动ID（英文下划线，如 practice_2）：');
+  if (!id) return;
+  try {
+    const item = createActionTemplate(data, { id });
+    const newArr = [...data.actions, item];
+    if (await saveDoc('actions', 'actions', newArr)) {
+      setData({ ...data, actions: newArr });
+      setSelectedIdx(newArr.length - 1);
+      renderActions();
+      toast('已创建模板行动：' + id);
+    }
+  } catch (e) {
+    toast(e.message || '创建模板失败', true);
   }
 }
 

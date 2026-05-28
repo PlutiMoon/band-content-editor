@@ -69,6 +69,10 @@ assert(world.includes('confirmReferenceRewrite'), 'world must confirm ID referen
 assert(actions.includes('saveReferenceMigration'), 'actions must save ID reference rewrites');
 assert(events.includes('saveReferenceMigration'), 'events must save ID reference rewrites');
 assert(world.includes('saveReferenceMigration'), 'world must save ID reference rewrites');
+assert(actions.includes('createActionTemplate'), 'actions must expose an action template');
+assert(events.includes('createActionEventTemplate'), 'events must expose action-event templates');
+assert(events.includes('createLocationEventTemplate'), 'events must expose location-event templates');
+assert(dialogues.includes('createNPCDialogueTemplate'), 'dialogues must expose NPC dialogue templates');
 
 assert(index.includes('data-tab="health"'), 'index.html must expose the health tab');
 assert(index.includes('value="health"'), 'mobile tab select must include health');

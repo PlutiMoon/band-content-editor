@@ -18,11 +18,15 @@ import {
 } from './forms.js';
 import { formatDeleteBlocker, formatReferenceSummary, rewriteContentReferences } from './delete_guards.js';
 import { confirmReferenceRewrite, saveReferenceMigration } from './reference_migrations.js';
+import { createActionEventTemplate, createLocationEventTemplate } from './content_templates.js';
 
 export function renderEvents() {
   const tb = document.getElementById('toolbar');
   tb.innerHTML = buildToolbar({ icon: '📋', label: '事件列表', unit: '事件', count: data.events.length, id: 'event', addLabel: '新增', exportLabel: '导出文件' });
+  tb.insertAdjacentHTML('beforeend', '<button class="btn-sm" id="btn-template-action-event">行动事件模板</button><button class="btn-sm" id="btn-template-location-event">地点事件模板</button>');
   document.getElementById('btn-add-event').onclick = addEvent;
+  document.getElementById('btn-template-action-event').onclick = addActionEventFromTemplate;
+  document.getElementById('btn-template-location-event').onclick = addLocationEventFromTemplate;
   document.getElementById('btn-import-event').onclick = () => window._importJSON('events');
   document.getElementById('btn-export-event').onclick = exportEvent;
 
@@ -184,6 +188,37 @@ async function addEvent() {
     setData({ ...data, events: newArr });
     setSelectedIdx(newArr.length - 1);
     renderEvents();
+  }
+}
+
+async function addActionEventFromTemplate() {
+  const actionId = prompt('触发行动ID：', data.actions?.[0]?.id || '');
+  if (!actionId) return;
+  const id = prompt('事件ID（英文下划线，如 after_' + actionId + '）：', 'after_' + actionId);
+  if (!id) return;
+  await addEventTemplate(() => createActionEventTemplate(data, { id, actionId }), id);
+}
+
+async function addLocationEventFromTemplate() {
+  const locationId = prompt('触发地点ID：', data.locations?.[0]?.id || '');
+  if (!locationId) return;
+  const id = prompt('事件ID（英文下划线，如 enter_' + locationId + '）：', 'enter_' + locationId);
+  if (!id) return;
+  await addEventTemplate(() => createLocationEventTemplate(data, { id, locationId }), id);
+}
+
+async function addEventTemplate(createItem, id) {
+  try {
+    const item = createItem();
+    const newArr = [...data.events, item];
+    if (await saveDoc('events', 'events', newArr)) {
+      setData({ ...data, events: newArr });
+      setSelectedIdx(newArr.length - 1);
+      renderEvents();
+      toast('已创建模板事件：' + id);
+    }
+  } catch (e) {
+    toast(e.message || '创建模板失败', true);
   }
 }
 
