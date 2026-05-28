@@ -10,6 +10,7 @@ const events = fs.readFileSync(path.join(root, 'js', 'events.js'), 'utf8');
 const dialogues = fs.readFileSync(path.join(root, 'js', 'dialogues.js'), 'utf8');
 const forms = fs.readFileSync(path.join(root, 'js', 'forms.js'), 'utf8');
 const world = fs.readFileSync(path.join(root, 'js', 'world.js'), 'utf8');
+const health = fs.readFileSync(path.join(root, 'js', 'health.js'), 'utf8');
 
 for (const name of ['validateLocation', 'validateNPC', 'validateMap', 'validateGameConfig']) {
   assert(forms.includes(`export function ${name}`), `forms.js must export ${name}`);
@@ -66,6 +67,9 @@ assert(index.includes('value="references"'), 'mobile tab select must include ref
 assert(index.includes('_createManualSnapshot'), 'index.html must expose manual snapshot creation');
 assert(app.includes("import { renderHealth } from './js/health.js'"), 'app.js must import renderHealth');
 assert(app.includes("case 'health': renderHealth(); break;"), 'app.js must route the health tab');
+assert(health.includes('buildHealthRepairPlan'), 'health panel must build repair plans');
+assert(health.includes('applyHealthRepairPlan'), 'health panel must apply repair plans');
+assert(health.includes('createSnapshot'), 'health repairs must snapshot before applying');
 assert(app.includes("import { renderSnapshots, createManualSnapshot } from './js/snapshots.js'"), 'app.js must import snapshots UI');
 assert(app.includes("case 'snapshots': renderSnapshots(); break;"), 'app.js must route the snapshots tab');
 assert(app.includes("createSnapshot(data, { source: 'import'"), 'imports must create a snapshot before writing data');

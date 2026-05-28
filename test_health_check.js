@@ -5,6 +5,8 @@ const { pathToFileURL } = require('url');
 async function main() {
   const mod = await import(pathToFileURL(path.join(__dirname, 'js', 'health_check.js')).href);
   const { runHealthCheck } = mod;
+  const repairMod = await import(pathToFileURL(path.join(__dirname, 'js', 'health_repairs.js')).href);
+  const { buildHealthRepairPlan, applyHealthRepairPlan } = repairMod;
 
   const broken = {
     actions: [
@@ -50,6 +52,39 @@ async function main() {
   };
 
   assert.strictEqual(runHealthCheck(clean).length, 0);
+
+  const repairable = {
+    actions: [{ id: 'bad_action', name: 'Bad', location: 'room', time_cost: -1, max_per_day: 1.5 }],
+    events: [],
+    locations: [{ id: 'room', name: 'Room', map_id: 'town' }],
+    maps: [{ id: 'town', name: 'Town', width: 0, height: -10 }],
+    npcs: [],
+    phone_chats: [],
+    game_config: { starting_map: 'town', starting_location: 'room' },
+    dialogues: { dlg_bad: { nodes: [] } },
+  };
+
+  const repairIssues = runHealthCheck(repairable);
+  const repairPlan = buildHealthRepairPlan(repairable, repairIssues);
+  const repairCodes = new Set(repairPlan.repairable.map(item => item.code));
+  assert(repairCodes.has('action_invalid_time_cost'));
+  assert(repairCodes.has('action_invalid_max_per_day'));
+  assert(repairCodes.has('map_invalid_width'));
+  assert(repairCodes.has('map_invalid_height'));
+  assert(repairCodes.has('dialogue_missing_start'));
+  assert(repairCodes.has('dialogue_missing_end'));
+
+  const repairResult = applyHealthRepairPlan(repairable, repairPlan);
+  assert(repairResult.changed);
+  assert(repairResult.docs.includes('actions'));
+  assert(repairResult.docs.includes('maps'));
+  assert(repairResult.dialogues.includes('dlg_bad'));
+  assert.strictEqual(repairable.actions[0].time_cost, 1);
+  assert.strictEqual(repairable.actions[0].max_per_day, 1);
+  assert.strictEqual(repairable.maps[0].width, 960);
+  assert.strictEqual(repairable.maps[0].height, 270);
+  assert(repairable.dialogues.dlg_bad.nodes.some(node => node.id === 'start'));
+  assert(repairable.dialogues.dlg_bad.nodes.some(node => node.id === 'end'));
 }
 
 main()

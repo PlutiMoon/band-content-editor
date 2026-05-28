@@ -1,6 +1,9 @@
 import { data } from './state.js';
 import { esc } from './forms.js';
+import { saveDoc, toast } from './core.js';
 import { runHealthCheck } from './health_check.js';
+import { createSnapshot } from './snapshot_store.js';
+import { buildHealthRepairPlan, applyHealthRepairPlan } from './health_repairs.js';
 
 function severityLabel(severity) {
   return severity === 'error' ? '错误' : '警告';
@@ -47,8 +50,64 @@ function renderIssueTable(issues) {
   return html;
 }
 
+function renderRepairPanel(plan) {
+  if (!plan.repairable.length && !plan.manual.length) return '';
+  const repairRows = plan.repairable.slice(0, 6).map(item =>
+    `<li>${esc(item.description)} <span class="hint">${esc(item.message)}</span></li>`
+  ).join('');
+  const more = plan.repairable.length > 6 ? `<li class="hint">等 ${plan.repairable.length} 项</li>` : '';
+  return `<div style="padding:12px;background:var(--bg2);border-left:3px solid var(--accent2);margin-bottom:12px;">
+    <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+      <div>
+        <div style="font-weight:700;color:var(--accent2);">修复计划</div>
+        <div class="hint">可自动修复 ${plan.repairable.length} 项 / 需人工处理 ${plan.manual.length} 项</div>
+      </div>
+      ${plan.repairable.length ? '<button class="btn-ok" id="btn-health-apply-repairs">应用自动修复</button>' : ''}
+    </div>
+    ${plan.repairable.length ? `<ul style="margin:8px 0 0 18px;">${repairRows}${more}</ul>` : ''}
+  </div>`;
+}
+
+async function saveRepairResult(result) {
+  const savers = {
+    actions: () => saveDoc('actions', 'actions', data.actions || []),
+    maps: () => saveDoc('maps', 'maps', data.maps || []),
+  };
+
+  for (const doc of result.docs || []) {
+    const save = savers[doc];
+    if (save && !(await save())) return false;
+  }
+
+  for (const dialogueId of result.dialogues || []) {
+    const dialogue = data.dialogues?.[dialogueId];
+    if (dialogue && !(await saveDoc('dialogues/' + dialogueId, 'dialogues', dialogue))) return false;
+  }
+
+  return true;
+}
+
+async function applyHealthRepairs(plan) {
+  if (!plan.repairable.length) return;
+  if (!confirm(`将应用 ${plan.repairable.length} 项低风险自动修复，并先创建快照。继续？`)) return;
+  createSnapshot(data, { source: 'health_repair', label: `体检自动修复前：${plan.repairable.length} 项` });
+  const result = applyHealthRepairPlan(data, plan);
+  if (!result.changed) {
+    toast('没有可应用的修复');
+    renderHealth();
+    return;
+  }
+  if (!(await saveRepairResult(result))) {
+    toast('自动修复已应用到本地，但保存失败，请重新拉取检查', true);
+    return;
+  }
+  toast(`已应用 ${plan.repairable.length} 项自动修复`);
+  renderHealth();
+}
+
 export function renderHealth() {
   const issues = runHealthCheck(data);
+  const repairPlan = buildHealthRepairPlan(data, issues);
   const tb = document.getElementById('toolbar');
   tb.innerHTML = `<span>内容体检</span>
     <span class="hint">错误 ${issues.filter(i => i.severity === 'error').length} / 警告 ${issues.filter(i => i.severity === 'warning').length}</span>
@@ -57,8 +116,11 @@ export function renderHealth() {
   const ct = document.getElementById('content');
   ct.innerHTML = `<div style="padding:12px 0;">
     ${renderSummary(issues)}
+    ${renderRepairPanel(repairPlan)}
     ${renderIssueTable(issues)}
   </div>`;
 
   document.getElementById('btn-health-refresh').onclick = renderHealth;
+  const applyBtn = document.getElementById('btn-health-apply-repairs');
+  if (applyBtn) applyBtn.onclick = () => applyHealthRepairs(repairPlan);
 }
