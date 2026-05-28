@@ -3,7 +3,6 @@
 // ════════════════════════════════════════════
 export const SUPABASE_URL = 'https://vgvghwcqcedycgpcvale.supabase.co';
 export const SUPABASE_ANON_KEY = 'sb_publishable_2sZdHKX2tAedbQDun5Cw4A_qch2a9Eg';
-export const ACCESS_KEY = 'band2025';
 
 // ── Game Constants ──
 export const STAT_NAMES = ['演奏力','创作力','社交力','魅力','执行力','精神状态'];

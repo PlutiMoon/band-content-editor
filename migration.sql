@@ -13,9 +13,11 @@ CREATE TABLE IF NOT EXISTS documents (
 -- 2. 开启实时广播
 ALTER PUBLICATION supabase_realtime ADD TABLE documents;
 
--- 3. RLS 开放访问（游戏内容数据无敏感信息，通过密码页做软控制）
+-- 3. RLS
+-- 旧版本使用 open_access 让静态编辑器直接读写 documents。
+-- 现在请在部署支持 RPC 的编辑器后执行 supabase_rpc_gate.sql，
+-- 由 editor_* RPC 函数校验访问口令并关闭直接表访问。
 ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "open_access" ON documents FOR ALL USING (true);
 
 -- 4. 操作历史表（每次修改自动记录快照）
 CREATE TABLE IF NOT EXISTS documents_history (

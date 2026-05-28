@@ -2,14 +2,15 @@
 // CORE — DB, Realtime, Auth, Utilities
 // ════════════════════════════════════════════
 import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY, ACCESS_KEY } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import {
-  supabase, clientId, data, userName,
+  supabase, clientId, data, userName, editorAccessKey,
   currentTab, selectedIdx, selectedDialogueIdx, selectedChatIdx,
   mobilePhoneView, mobileDialogueView, mobileEditingNodeIdx,
   setSupabase, setData, setUserName, setCurrentTab,
   setSelectedIdx, setSelectedDialogueIdx, setSelectedChatIdx,
-  setMobilePhoneView, setMobileDialogueView, setMobileEditingNodeIdx
+  setMobilePhoneView, setMobileDialogueView, setMobileEditingNodeIdx,
+  setEditorAccessKey
 } from './state.js';
 import { esc } from './forms.js';
 
@@ -72,7 +73,9 @@ export async function pullFromDB() {
   if (!supabase) return;
   showLoading('正在从数据库拉取...');
   try {
-    const { data: rows, error } = await supabase.from('documents').select('*');
+    const { data: rows, error } = await supabase.rpc('editor_list_documents', {
+      input_key: editorAccessKey
+    });
     if (error) { hideLoading(); toast('拉取失败: ' + error.message, true); return; }
     if (!rows || rows.length === 0) {
       hideLoading();
@@ -145,13 +148,13 @@ export function removeDocumentRow(row) {
 export async function saveDoc(id, type, docData) {
   if (!supabase) { toast('未连接数据库', true); return false; }
   try {
-    const payload = {
-      id, type,
-      data: docData,
-      updated_by: userName,
-      updated_at: new Date().toISOString()
-    };
-    const { error } = await supabase.from('documents').upsert(payload, { onConflict: 'id' });
+    const { error } = await supabase.rpc('editor_upsert_document', {
+      input_key: editorAccessKey,
+      doc_id: id,
+      doc_type: type,
+      doc_data: docData,
+      updater: userName
+    });
     if (error) { toast('保存失败: ' + error.message, true); return false; }
     return true;
   } catch (e) {
@@ -164,7 +167,10 @@ export async function saveDoc(id, type, docData) {
 export async function deleteDoc(id) {
   if (!supabase) { toast('未连接数据库', true); return false; }
   try {
-    const { error } = await supabase.from('documents').delete().eq('id', id);
+    const { error } = await supabase.rpc('editor_delete_document', {
+      input_key: editorAccessKey,
+      doc_id: id
+    });
     if (error) { toast('删除失败: ' + error.message, true); return false; }
     return true;
   } catch (e) {
@@ -342,19 +348,22 @@ export function doLogin() {
   if (window._appInitialized) return;
   const key = document.getElementById('login-key').value.trim();
   const name = document.getElementById('login-name').value.trim();
-  if (key !== ACCESS_KEY) {
+  if (!key) {
     document.getElementById('login-error').style.display = 'block';
     return;
   }
   setUserName(name || clientId);
+  setEditorAccessKey(key);
 
   const remember = document.getElementById('login-remember')?.checked !== false;
   const store = remember ? localStorage : sessionStorage;
   store.setItem('band_logged_in', 'true');
   store.setItem('band_user_name', userName);
+  store.setItem('band_access_key', key);
   if (remember) {
     sessionStorage.setItem('band_logged_in', 'true');
     sessionStorage.setItem('band_user_name', userName);
+    sessionStorage.setItem('band_access_key', key);
   }
 
   // initApp is imported and called by app.js
@@ -363,10 +372,12 @@ export function doLogin() {
 window.doLogin = doLogin;
 
 export function checkAutoLogin() {
-  if (sessionStorage.getItem('band_logged_in') === 'true' ||
-      localStorage.getItem('band_logged_in') === 'true') {
+  const savedKey = sessionStorage.getItem('band_access_key') || localStorage.getItem('band_access_key') || '';
+  if (savedKey && (sessionStorage.getItem('band_logged_in') === 'true' ||
+      localStorage.getItem('band_logged_in') === 'true')) {
     setUserName(sessionStorage.getItem('band_user_name') ||
                localStorage.getItem('band_user_name') || clientId);
+    setEditorAccessKey(savedKey);
     return true;
   }
   return false;

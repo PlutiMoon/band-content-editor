@@ -12,6 +12,7 @@ export let selectedDialogueIdx = -1;
 export let selectedChatIdx = -1;
 export let data = { actions: [], events: [], dialogues: {}, phone_chats: [], maps: [], locations: [], npcs: [], game_config: {} };
 export let userName = '';
+export let editorAccessKey = '';
 
 // ── Mobile navigation state ──
 export let mobilePhoneView = 'list';       // 'list' | 'chat'
@@ -33,6 +34,7 @@ export function setSelectedDialogueIdx(v) { selectedDialogueIdx = v; }
 export function setSelectedChatIdx(v) { selectedChatIdx = v; }
 export function setData(v) { data = v; }
 export function setUserName(v) { userName = v; }
+export function setEditorAccessKey(v) { editorAccessKey = v; }
 export function setMobilePhoneView(v) { mobilePhoneView = v; }
 export function setMobileDialogueView(v) { mobileDialogueView = v; }
 export function setMobileEditingNodeIdx(v) { mobileEditingNodeIdx = v; }
