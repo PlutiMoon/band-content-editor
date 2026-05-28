@@ -18,6 +18,7 @@ assert(!config.includes(legacyPassword), 'config.js must not ship the editor pas
 assert(core.includes('isAccessKeyError'), 'core.js must classify access-key RPC errors');
 assert(core.includes('resetLoginState'), 'core.js must clear saved login state after access-key errors');
 assert(core.includes('invalid editor access key'), 'core.js must recognize Supabase access-key errors');
+assert(core.includes("error?.status === 403"), 'core.js must recognize Supabase 403 access-key errors');
 assert(core.includes("removeItem('band_access_key')"), 'core.js must clear stored editor access key');
 
 console.log('RPC gate smoke test passed');

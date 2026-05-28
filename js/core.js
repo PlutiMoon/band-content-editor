@@ -67,7 +67,8 @@ export function hideLoading() {
 
 function isAccessKeyError(error) {
   const msg = String(error?.message || error || '').toLowerCase();
-  return msg.includes('invalid editor access key') ||
+  return error?.status === 403 ||
+         msg.includes('invalid editor access key') ||
          msg.includes('invalid access key') ||
          msg.includes('28000');
 }
