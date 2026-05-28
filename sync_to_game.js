@@ -7,12 +7,35 @@
 const fs = require('fs');
 const path = require('path');
 
-const SUPABASE_URL = 'https://vgvghwcqcedycgpcvale.supabase.co';
-const SR_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZndmdod2NxY2VkeWNncGN2YWxlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTI2OTU4NiwiZXhwIjoyMDk0ODQ1NTg2fQ.2XFkZEYa5VdR_2H-t-GbHuvpmoh-CSHvZJkNK4sJvds';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vgvghwcqcedycgpcvale.supabase.co';
+const SR_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const JSON_DIR = path.resolve(__dirname, '..', 'assets', 'json');
+const JSON_DIR = resolveJsonDir();
 const BACKUP = process.argv.includes('--backup');
 const SEED = process.argv.includes('--seed');
+
+if (!SR_KEY) {
+  console.error('缺少环境变量 SUPABASE_SECRET_KEY 或 SUPABASE_SERVICE_ROLE_KEY。');
+  console.error('请在 PowerShell 中设置后重试，例如：');
+  console.error('[Environment]::SetEnvironmentVariable("SUPABASE_SECRET_KEY", "<secret_key>", "User")');
+  process.exit(1);
+}
+
+function resolveJsonDir() {
+  if (process.env.BAND_JSON_DIR) {
+    return path.resolve(process.env.BAND_JSON_DIR);
+  }
+  const candidates = [
+    path.resolve(__dirname, '..', 'assets', 'json'),
+    path.resolve(__dirname, '..', '..', 'assets', 'json'),
+  ];
+  const found = candidates.find(dir => fs.existsSync(dir));
+  if (!found) {
+    console.error('找不到 assets/json 目录。可通过 BAND_JSON_DIR 指定。');
+    process.exit(1);
+  }
+  return found;
+}
 
 async function fetchDocs() {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/documents?select=*`, {

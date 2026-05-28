@@ -2,7 +2,7 @@
 // CONFIG — 部署前修改这里
 // ════════════════════════════════════════════
 export const SUPABASE_URL = 'https://vgvghwcqcedycgpcvale.supabase.co';
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZndmdod2NxY2VkeWNncGN2YWxlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTI2OTU4NiwiZXhwIjoyMDk0ODQ1NTg2fQ.2XFkZEYa5VdR_2H-t-GbHuvpmoh-CSHvZJkNK4sJvds';
+export const SUPABASE_ANON_KEY = 'sb_publishable_2sZdHKX2tAedbQDun5Cw4A_qch2a9Eg';
 export const ACCESS_KEY = 'band2025';
 
 // ── Game Constants ──
