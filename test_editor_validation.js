@@ -12,6 +12,7 @@ const dialogues = fs.readFileSync(path.join(root, 'js', 'dialogues.js'), 'utf8')
 const forms = fs.readFileSync(path.join(root, 'js', 'forms.js'), 'utf8');
 const world = fs.readFileSync(path.join(root, 'js', 'world.js'), 'utf8');
 const health = fs.readFileSync(path.join(root, 'js', 'health.js'), 'utf8');
+const healthCheck = fs.readFileSync(path.join(root, 'js', 'health_check.js'), 'utf8');
 const graph = fs.readFileSync(path.join(root, 'js', 'graph.js'), 'utf8');
 const search = fs.readFileSync(path.join(root, 'js', 'search.js'), 'utf8');
 
@@ -82,6 +83,9 @@ assert(health.includes('buildHealthRepairPlan'), 'health panel must build repair
 assert(health.includes('applyHealthRepairPlan'), 'health panel must apply repair plans');
 assert(health.includes('createSnapshot'), 'health repairs must snapshot before applying');
 assert(health.includes('buildPublishGate'), 'health panel must show publish gate');
+assert(healthCheck.includes('buildContentGraph'), 'health check must include graph diagnostics');
+assert(healthCheck.includes('graph_missing_reference'), 'health check must report graph missing references');
+assert(healthCheck.includes('graph_isolated_node'), 'health check must report graph isolated nodes');
 assert(app.includes("import { renderSnapshots, createManualSnapshot } from './js/snapshots.js'"), 'app.js must import snapshots UI');
 assert(app.includes("case 'snapshots': renderSnapshots(); break;"), 'app.js must route the snapshots tab');
 assert(app.includes("createSnapshot(data, { source: 'import'"), 'imports must create a snapshot before writing data');

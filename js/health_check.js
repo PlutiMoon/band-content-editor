@@ -1,3 +1,5 @@
+import { buildContentGraph } from './relationship_graph.js';
+
 const RUNTIME_TRIGGERS = new Set(['phase_start', 'action_complete', 'location', 'stat_threshold', 'week_end']);
 
 function issue(severity, area, code, message, extra = {}) {
@@ -66,6 +68,23 @@ function validateDialogue(issues, dialogueId, dialogue) {
       if (choiceNext && !byId.has(choiceNext)) {
         issues.push(issue('error', 'dialogues', 'dialogue_missing_choice_next', `${dialogueId}/${nodeId}: 选项指向不存在节点 ${choiceNext}`, { dialogueId, nodeId, next: choiceNext }));
       }
+    }
+  }
+}
+
+function addGraphDiagnosticIssues(issues, data) {
+  const graph = buildContentGraph(data);
+  for (const graphIssue of graph.issues || []) {
+    if (graphIssue.type === 'missing_reference' && graphIssue.targetKind === 'npc') {
+      issues.push(issue('error', 'graph', 'graph_missing_reference', `关系图断链：${graphIssue.detail}`, {
+        source: graphIssue.source,
+        target: graphIssue.target,
+      }));
+    }
+    if (graphIssue.type === 'isolated_node') {
+      issues.push(issue('warning', 'graph', 'graph_isolated_node', `关系图孤岛：${graphIssue.detail}`, {
+        source: graphIssue.source,
+      }));
     }
   }
 }
@@ -171,6 +190,8 @@ export function runHealthCheck(project) {
   for (const [dialogueId, dialogue] of Object.entries(dialogues)) {
     validateDialogue(issues, dialogueId, dialogue);
   }
+
+  addGraphDiagnosticIssues(issues, data);
 
   return issues;
 }

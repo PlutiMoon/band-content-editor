@@ -12,7 +12,7 @@ async function main() {
 
   const broken = {
     actions: [
-      { id: 'practice', name: 'Practice', location: 'missing_room', time_cost: 1, max_per_day: 1 },
+      { id: 'practice', name: 'Practice', location: 'missing_room', time_cost: 1, max_per_day: 1, requirements: { relationships: [{ npc_id: 'missing_npc' }] } },
       { id: 'practice', name: 'Duplicate', location: 'room', time_cost: 1, max_per_day: 1 },
     ],
     events: [
@@ -26,6 +26,7 @@ async function main() {
     game_config: { starting_map: 'town', starting_location: 'missing_room' },
     dialogues: {
       dlg_intro: { nodes: [{ id: 'start', text: 'hello', next: 'end' }] },
+      lonely: { nodes: [{ id: 'start', text: 'alone', next: 'end' }, { id: 'end', text: '' }] },
     },
   };
 
@@ -41,6 +42,8 @@ async function main() {
   assert(codes.has('phone_unknown_event'));
   assert(codes.has('game_config_unknown_starting_location'));
   assert(codes.has('dialogue_missing_end'));
+  assert(codes.has('graph_missing_reference'));
+  assert(codes.has('graph_isolated_node'));
 
   const clean = {
     actions: [{ id: 'practice', name: 'Practice', location: 'room', time_cost: 1, max_per_day: 1 }],
