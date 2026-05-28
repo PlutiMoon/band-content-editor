@@ -12,7 +12,7 @@ import {
   renderRelDeltas, readRelDeltas,
   validateDialogueNode
 } from './forms.js';
-import { formatDeleteBlocker } from './delete_guards.js';
+import { formatDeleteBlocker, formatReferenceSummary } from './delete_guards.js';
 
 export function renderDialogues() {
   const tb = document.getElementById('toolbar');
@@ -55,6 +55,7 @@ export function renderDialogues() {
     const d = data.dialogues[dk];
     html += '<div class="split-content">';
     html += `<h4 style="color:var(--accent2);margin-bottom:4px;">${esc(dk)}</h4>`;
+    html += `<div class="hint" style="margin-bottom:8px;">${esc(formatReferenceSummary('dialogue', dk, data))}</div>`;
     html += `<div style="margin-bottom:8px;"><button class="btn-sm btn-ok" id="btn-add-node">+ 添加节点</button></div>`;
     const nodes = d.nodes || [];
     if (nodes.length === 0) {

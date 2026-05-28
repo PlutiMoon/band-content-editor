@@ -16,7 +16,7 @@ import {
   renderRelReqs, readRelReqs,
   validateEvent
 } from './forms.js';
-import { formatDeleteBlocker } from './delete_guards.js';
+import { formatDeleteBlocker, formatReferenceSummary } from './delete_guards.js';
 
 export function renderEvents() {
   const tb = document.getElementById('toolbar');
@@ -89,6 +89,7 @@ function renderEventDetail() {
 
   let html = '<div style="margin-top:16px;padding:16px;background:var(--bg2);border-radius:6px;" id="eventDetail">';
   html += '<h3 style="color:var(--accent2);margin-bottom:8px;">编辑：'+esc(e.name)+'</h3>';
+  html += `<div class="hint" style="margin-bottom:8px;">${esc(formatReferenceSummary('event', e.id, data))}</div>`;
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
   html += fld('ID','evt_id',e.id);
   html += fld('名称','evt_name',e.name);

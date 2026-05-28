@@ -4,7 +4,7 @@ const { pathToFileURL } = require('url');
 
 async function main() {
   const mod = await import(pathToFileURL(path.join(__dirname, 'js', 'delete_guards.js')).href);
-  const { findDeleteReferences, formatDeleteBlocker } = mod;
+  const { findDeleteReferences, formatDeleteBlocker, formatReferenceSummary } = mod;
 
   const project = {
     actions: [
@@ -49,6 +49,8 @@ async function main() {
 
   assert.strictEqual(formatDeleteBlocker('dialogue', 'unused', project), null);
   assert(formatDeleteBlocker('location', 'room', project).startsWith('不能删除地点 room'));
+  assert.strictEqual(formatReferenceSummary('dialogue', 'unused', project), '未被引用');
+  assert(formatReferenceSummary('location', 'room', project).includes('被 3 处引用'));
 }
 
 main()

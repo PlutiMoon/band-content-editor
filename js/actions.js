@@ -15,7 +15,7 @@ import {
   renderRelDeltas, readRelDeltas,
   validateAction
 } from './forms.js';
-import { formatDeleteBlocker } from './delete_guards.js';
+import { formatDeleteBlocker, formatReferenceSummary } from './delete_guards.js';
 
 export function renderActions() {
   const tb = document.getElementById('toolbar');
@@ -90,6 +90,7 @@ function renderActionDetail() {
 
   let html = '<div style="margin-top:16px;padding:16px;background:var(--bg2);border-radius:6px;" id="actionDetail">';
   html += '<h3 style="color:var(--accent2);margin-bottom:8px;">编辑：'+esc(a.name)+'</h3>';
+  html += `<div class="hint" style="margin-bottom:8px;">${esc(formatReferenceSummary('action', a.id, data))}</div>`;
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
   html += fld('ID','act_id',a.id);
   html += fld('名称','act_name',a.name);

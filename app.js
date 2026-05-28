@@ -26,6 +26,7 @@ import { renderWorld } from './js/world.js';
 import { renderHealth } from './js/health.js';
 import { renderSnapshots, createManualSnapshot } from './js/snapshots.js';
 import { createSnapshot } from './js/snapshot_store.js';
+import { renderReferences } from './js/references.js';
 import {
   validateAction,
   validateEvent,
@@ -119,6 +120,7 @@ function switchTab(tab, silent) {
     case 'world': renderWorld(); break;
     case 'health': renderHealth(); break;
     case 'snapshots': renderSnapshots(); break;
+    case 'references': renderReferences(); break;
   }
 }
 window._switchTab = switchTab;

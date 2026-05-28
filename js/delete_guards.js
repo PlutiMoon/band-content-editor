@@ -94,3 +94,11 @@ export function formatDeleteBlocker(kind, id, project) {
   const suffix = refs.length > shown.length ? ` 等 ${refs.length} 处` : '';
   return `不能删除${label} ${id}：被 ${shown.join('、')} 引用${suffix}`;
 }
+
+export function formatReferenceSummary(kind, id, project) {
+  const refs = findDeleteReferences(kind, id, project);
+  if (!refs.length) return '未被引用';
+  const shown = refs.slice(0, 3);
+  const suffix = refs.length > shown.length ? ` 等 ${refs.length} 处` : '';
+  return `被 ${refs.length} 处引用：${shown.join('、')}${suffix}`;
+}

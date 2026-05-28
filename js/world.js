@@ -6,7 +6,7 @@ import { data, worldSection, selectedLocationIdx, selectedNPCIdx, selectedMapIdx
   setWorldSection, setSelectedLocationIdx, setSelectedNPCIdx, setSelectedMapIdx, setData } from './state.js';
 import { saveDoc, toast, downloadJSON } from './core.js';
 import { fld, sel, esc, validateLocation, validateNPC, validateMap, validateGameConfig } from './forms.js';
-import { formatDeleteBlocker } from './delete_guards.js';
+import { formatDeleteBlocker, formatReferenceSummary } from './delete_guards.js';
 
 export function renderWorld() {
   const tb = document.getElementById('toolbar');
@@ -155,6 +155,7 @@ function renderLocationDetail(ct) {
   const lbl = l.map_label_pos || {};
   let html = '<div style="margin-top:16px;padding:16px;background:var(--bg2);border-radius:6px;" id="locDetail">';
   html += '<h3 style="color:var(--accent2);margin-bottom:8px;">编辑地点：'+esc(l.name)+'</h3>';
+  html += `<div class="hint" style="margin-bottom:8px;">${esc(formatReferenceSummary('location', l.id, data))}</div>`;
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
   html += fld('ID','loc_id',l.id);
   html += fld('名称','loc_name',l.name);
@@ -301,6 +302,7 @@ function renderNPCDetail(ct) {
   const pos = n.map_position || {};
   let html = '<div style="margin-top:16px;padding:16px;background:var(--bg2);border-radius:6px;" id="npcDetail">';
   html += '<h3 style="color:var(--accent2);margin-bottom:8px;">编辑NPC：'+esc(n.name)+'</h3>';
+  html += `<div class="hint" style="margin-bottom:8px;">${esc(formatReferenceSummary('npc', n.id, data))}</div>`;
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
   html += fld('ID','npc_id',n.id);
   html += fld('名称','npc_name',n.name);
@@ -447,6 +449,7 @@ function renderMapDetail(ct) {
 
   let html = '<div style="margin-top:16px;padding:16px;background:var(--bg2);border-radius:6px;" id="mapDetail">';
   html += '<h3 style="color:var(--accent2);margin-bottom:8px;">编辑地图：'+esc(m.name)+'</h3>';
+  html += `<div class="hint" style="margin-bottom:8px;">${esc(formatReferenceSummary('map', m.id, data))}</div>`;
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
   html += fld('ID','map_id',m.id);
   html += fld('名称','map_name',m.name);
