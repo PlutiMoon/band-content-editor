@@ -5,7 +5,7 @@ import { STAT_NAMES } from './config.js';
 import { data, worldSection, selectedLocationIdx, selectedNPCIdx, selectedMapIdx,
   setWorldSection, setSelectedLocationIdx, setSelectedNPCIdx, setSelectedMapIdx, setData } from './state.js';
 import { saveDoc, toast, downloadJSON } from './core.js';
-import { fld, sel, esc } from './forms.js';
+import { fld, sel, esc, validateLocation, validateNPC, validateMap, validateGameConfig } from './forms.js';
 
 export function renderWorld() {
   const tb = document.getElementById('toolbar');
@@ -80,6 +80,9 @@ async function saveGameConfig() {
   STAT_NAMES.forEach((_, i) => {
     gc.starting_stats[String(i)] = parseInt(document.getElementById('gc_stat_'+i).value) || 0;
   });
+
+  const err = validateGameConfig(gc);
+  if (err) { toast(err, true); return; }
 
   if (await saveDoc('game_config', 'game_config', gc)) {
     setData({ ...data, game_config: gc });
@@ -196,6 +199,9 @@ async function saveLocationDetail() {
   };
 
   if (!l.id) { toast('ID 不能为空', true); return; }
+  const err = validateLocation(l, data.locations);
+  if (err) { toast(err, true); return; }
+
   if (await saveDoc('locations', 'locations', data.locations)) {
     toast('已保存地点');
     renderWorld();
@@ -321,6 +327,9 @@ async function saveNPCDetail() {
   };
 
   if (!n.id) { toast('ID 不能为空', true); return; }
+  const err = validateNPC(n, data.npcs);
+  if (err) { toast(err, true); return; }
+
   if (await saveDoc('npcs', 'npcs', data.npcs)) {
     toast('已保存NPC');
     renderWorld();
@@ -519,6 +528,9 @@ async function saveMapDetail() {
   m.decor_buildings = decor;
 
   if (!m.id) { toast('ID 不能为空', true); return; }
+  const err = validateMap(m, data.maps);
+  if (err) { toast(err, true); return; }
+
   if (await saveDoc('maps', 'maps', data.maps)) {
     toast('已保存地图');
     renderWorld();

@@ -229,6 +229,22 @@ export function readRelReqs(prefix) {
 // ════════════════════════════════════════════
 // VALIDATION
 // ════════════════════════════════════════════
+function hasDuplicateId(item, items) {
+  return (items || []).filter(x => x !== item && x.id === item.id).length > 0;
+}
+
+function hasId(items, id) {
+  return !id || (items || []).some(x => x.id === id);
+}
+
+function isNonNegativeInteger(value) {
+  return Number.isInteger(value) && value >= 0;
+}
+
+function isPositiveNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
 export function validateAction(a, allActions) {
   if (!a.id) return '行动ID不能为空';
   if (a.id.includes('/')) return '行动ID不能含 "/"';
@@ -236,6 +252,9 @@ export function validateAction(a, allActions) {
   if (allActions.filter(x => x !== a && x.id === a.id).length) return '行动ID重复：' + a.id;
   if (a.time_cost < 0) return '消耗时段不能为负数';
   if (a.max_per_day < 0) return '每日上限不能为负数';
+  if (!isNonNegativeInteger(a.time_cost)) return '消耗时段必须是非负整数';
+  if (!isNonNegativeInteger(a.max_per_day)) return '每日上限必须是非负整数';
+  if (a.location && !hasId(data.locations, a.location)) return '行动引用了不存在的地点：' + a.location;
   return null;
 }
 
@@ -244,6 +263,45 @@ export function validateEvent(e, allEvents) {
   if (e.id.includes('/')) return '事件ID不能含 "/"';
   if (!e.name) return '事件名称不能为空';
   if (allEvents.filter(x => x !== e && x.id === e.id).length) return '事件ID重复：' + e.id;
+  if (e.trigger_type === 'action_complete' && !e.trigger_detail) return '行动完成触发器需要填写行动ID';
+  if (e.trigger_type === 'action_complete' && !hasId(data.actions, e.trigger_detail)) return '事件引用了不存在的行动：' + e.trigger_detail;
+  if (e.trigger_type === 'location' && !e.trigger_detail) return '地点触发器需要填写地点ID';
+  if (e.trigger_type === 'location' && !hasId(data.locations, e.trigger_detail)) return '事件引用了不存在的地点：' + e.trigger_detail;
+  return null;
+}
+
+export function validateLocation(l, allLocations) {
+  if (!l.id) return '地点ID不能为空';
+  if (l.id.includes('/')) return '地点ID不能含 "/"';
+  if (!l.name) return '地点名称不能为空';
+  if (hasDuplicateId(l, allLocations)) return '地点ID重复：' + l.id;
+  if (l.map_id && !hasId(data.maps, l.map_id)) return '地点引用了不存在的地图：' + l.map_id;
+  return null;
+}
+
+export function validateNPC(n, allNPCs) {
+  if (!n.id) return 'NPC ID不能为空';
+  if (n.id.includes('/')) return 'NPC ID不能含 "/"';
+  if (!n.name) return 'NPC名称不能为空';
+  if (hasDuplicateId(n, allNPCs)) return 'NPC ID重复：' + n.id;
+  if (n.map_id && !hasId(data.maps, n.map_id)) return 'NPC引用了不存在的地图：' + n.map_id;
+  return null;
+}
+
+export function validateMap(m, allMaps) {
+  if (!m.id) return '地图ID不能为空';
+  if (m.id.includes('/')) return '地图ID不能含 "/"';
+  if (!m.name) return '地图名称不能为空';
+  if (hasDuplicateId(m, allMaps)) return '地图ID重复：' + m.id;
+  if (!isPositiveNumber(m.width)) return '地图宽度必须大于0';
+  if (!isPositiveNumber(m.height)) return '地图高度必须大于0';
+  return null;
+}
+
+export function validateGameConfig(gc) {
+  if (gc.starting_map && !hasId(data.maps, gc.starting_map)) return '初始地图不存在：' + gc.starting_map;
+  if (gc.starting_location && !hasId(data.locations, gc.starting_location)) return '初始地点不存在：' + gc.starting_location;
+  if (gc.stat_min > gc.stat_max) return '属性下限不能大于属性上限';
   return null;
 }
 
