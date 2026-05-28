@@ -23,6 +23,16 @@ import { renderEvents } from './js/events.js';
 import { renderDialogues } from './js/dialogues.js';
 import { renderPhone } from './js/phone.js';
 import { renderWorld } from './js/world.js';
+import {
+  validateAction,
+  validateEvent,
+  validateLocation,
+  validateNPC,
+  validateMap,
+  validateGameConfig,
+  validateDialogueNode,
+  validateMessage
+} from './js/forms.js';
 
 // ════════════════════════════════════════════
 // APP INIT
@@ -113,6 +123,62 @@ window._switchTab = switchTab;
 // ════════════════════════════════════════════
 window.pullFromDB = pullFromDB;
 
+function asArray(payload) {
+  return Array.isArray(payload) ? payload : [payload];
+}
+
+function validateItems(items, validator, label) {
+  for (const item of items) {
+    if (!item || typeof item !== 'object') return `${label} 格式错误`;
+    const err = validator(item, items);
+    if (err) return `${label} ${item.id || item.chat_id || item.dialogue_id || '(unknown)'}: ${err}`;
+  }
+  return null;
+}
+
+function getImportValidationError(type, payload) {
+  if (type === 'game_config') {
+    return validateGameConfig(payload);
+  }
+
+  if (type === 'dialogues') {
+    const nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+    if (!nodes.some(n => n.id === 'start')) return '对话缺少 start 节点';
+    if (!nodes.some(n => n.id === 'end')) return '对话缺少 end 节点';
+    return validateItems(nodes, validateDialogueNode, '节点');
+  }
+
+  if (type === 'phone') {
+    const chats = asArray(payload);
+    const seen = new Set();
+    for (const chat of chats) {
+      if (!chat || typeof chat !== 'object') return '手机聊天格式错误';
+      if (!chat.chat_id) return '手机聊天缺少 chat_id';
+      if (seen.has(chat.chat_id)) return '手机聊天ID重复：' + chat.chat_id;
+      seen.add(chat.chat_id);
+      const messages = Array.isArray(chat.messages) ? chat.messages : [];
+      const err = validateItems(messages, validateMessage, `聊天 ${chat.chat_id} 消息`);
+      if (err) return err;
+    }
+    return null;
+  }
+
+  const items = asArray(payload);
+  if (type === 'actions') return validateItems(items, validateAction, '行动');
+  if (type === 'events') return validateItems(items, validateEvent, '事件');
+  if (type === 'locations') return validateItems(items, validateLocation, '地点');
+  if (type === 'maps') return validateItems(items, validateMap, '地图');
+  if (type === 'npcs') return validateItems(items, validateNPC, 'NPC');
+  return null;
+}
+
+function validateImportPayload(type, payload, fileName) {
+  const err = getImportValidationError(type, payload);
+  if (!err) return true;
+  toast(`导入失败：${fileName}：${err}`, true);
+  return false;
+}
+
 // ════════════════════════════════════════════
 // IMPORT / EXPORT ALL
 // ════════════════════════════════════════════
@@ -132,11 +198,13 @@ function importJSON(type) {
         if (type === 'dialogues') {
           const id = obj.dialogue_id || file.name.replace('.json','');
           obj.dialogue_id = id;
+          if (!validateImportPayload(type, obj, file.name)) continue;
           if (await saveDoc('dialogues/'+id, 'dialogues', obj)) {
             setData({ ...data, dialogues: { ...data.dialogues, [id]: obj } });
             imported++;
           }
         } else if (type === 'game_config') {
+          if (!validateImportPayload(type, obj, file.name)) continue;
           if (await saveDoc('game_config', 'game_config', obj)) {
             setData({ ...data, game_config: obj });
             imported++;
@@ -159,6 +227,7 @@ function importJSON(type) {
 
           const docId = type === 'phone' ? 'phone_chats' : type;
           const docType = type === 'phone' ? 'phone_chats' : type;
+          if (!validateImportPayload(type, target, file.name)) continue;
           if (await saveDoc(docId, docType, target)) {
             if (type === 'phone') setData({ ...data, phone_chats: target });
             else if (type === 'actions') setData({ ...data, actions: target });
