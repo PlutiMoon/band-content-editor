@@ -45,8 +45,10 @@ assert(app.includes('validateImportPayload'), 'app.js must validate import paylo
 assert(app.includes("import { buildImportPreview, formatImportPreview } from './js/import_preview.js'"), 'app.js must import import preview helpers');
 assert(app.includes('const preview = buildImportPreview(type, entries, data)'), 'imports must build a preview before writing');
 assert(app.includes('formatImportPreview(preview)'), 'imports must show formatted preview before writing');
+assert(app.includes('function showImportPreviewModal'), 'imports must show preview in an in-app modal');
+assert(app.includes('import-preview-modal'), 'import preview modal must have a stable DOM hook');
 assert(
-  app.indexOf('formatImportPreview(preview)') < app.indexOf("createSnapshot(data, { source: 'import'"),
+  app.indexOf('showImportPreviewModal(preview)') < app.indexOf("createSnapshot(data, { source: 'import'"),
   'import preview must be confirmed before creating import snapshot'
 );
 assert(

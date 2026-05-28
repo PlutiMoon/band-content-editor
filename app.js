@@ -43,7 +43,8 @@ import {
   validateMap,
   validateGameConfig,
   validateDialogueNode,
-  validateMessage
+  validateMessage,
+  esc
 } from './js/forms.js';
 
 // ════════════════════════════════════════════
@@ -201,6 +202,61 @@ function validateImportPayload(type, payload, fileName) {
   return false;
 }
 
+function importOperationLabel(operation) {
+  if (operation === 'create') return '新增';
+  if (operation === 'overwrite') return '覆盖';
+  if (operation === 'replace') return '替换';
+  return '错误';
+}
+
+function importOperationColor(operation) {
+  if (operation === 'create') return 'var(--ok)';
+  if (operation === 'overwrite') return 'var(--warn)';
+  if (operation === 'replace') return 'var(--accent2)';
+  return 'var(--danger)';
+}
+
+function showImportPreviewModal(preview) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.id = 'import-preview-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.58);display:flex;align-items:center;justify-content:center;padding:16px;';
+    const rows = (preview.items || []).map(item => {
+      const label = importOperationLabel(item.operation);
+      const color = importOperationColor(item.operation);
+      const detail = item.error || item.id || '';
+      return `<tr>
+        <td style="color:${color};font-weight:700;">${esc(label)}</td>
+        <td>${esc(item.fileName)}</td>
+        <td>${esc(detail)}</td>
+      </tr>`;
+    }).join('');
+    overlay.innerHTML = `<div style="width:min(720px,96vw);max-height:86vh;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 18px 60px rgba(0,0,0,0.35);">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+        <div style="font-size:1.05rem;font-weight:700;color:var(--accent2);">导入预览</div>
+        <div class="hint" style="margin-top:4px;white-space:pre-line;">${esc(formatImportPreview(preview).split('\n').slice(0, 2).join('\n'))}</div>
+      </div>
+      <div style="padding:12px 16px;">
+        <table><thead><tr><th>操作</th><th>文件</th><th>ID / 错误</th></tr></thead><tbody>${rows}</tbody></table>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border);">
+        <button id="import-preview-cancel">取消</button>
+        <button class="btn-ok" id="import-preview-confirm">确认导入</button>
+      </div>
+    </div>`;
+    const close = value => {
+      overlay.remove();
+      resolve(value);
+    };
+    overlay.querySelector('#import-preview-cancel').onclick = () => close(false);
+    overlay.querySelector('#import-preview-confirm').onclick = () => close(true);
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) close(false);
+    });
+    document.body.appendChild(overlay);
+  });
+}
+
 // ════════════════════════════════════════════
 // IMPORT / EXPORT ALL
 // ════════════════════════════════════════════
@@ -225,7 +281,7 @@ function importJSON(type) {
       toast('没有可导入的有效文件', true);
       return;
     }
-    if (!confirm(formatImportPreview(preview) + '\n\n继续导入？')) return;
+    if (!(await showImportPreviewModal(preview))) return;
 
     createSnapshot(data, { source: 'import', label: `导入前：${type} (${preview.importableCount} 项 / ${files.length} 个文件)` });
     toast('已自动创建导入前快照');
