@@ -34,6 +34,7 @@ import { createReleaseRecord } from './js/release_store.js';
 import { renderAudit } from './js/audit.js';
 import { recordAuditEntry } from './js/audit_store.js';
 import { buildPublishGate, formatPublishGateMessage } from './js/publish_gate.js';
+import { buildImportPreview, formatImportPreview } from './js/import_preview.js';
 import {
   validateAction,
   validateEvent,
@@ -209,26 +210,45 @@ function importJSON(type) {
   input.onchange = async () => {
     const files = Array.from(input.files);
     if (!files.length) return;
-    if (!confirm(`将导入 ${files.length} 个文件，确定？`)) return;
 
-    createSnapshot(data, { source: 'import', label: `导入前：${type} (${files.length} 个文件)` });
+    const entries = [];
+    for (const file of files) {
+      try {
+        entries.push({ fileName: file.name, payload: JSON.parse(await file.text()) });
+      } catch(e) {
+        entries.push({ fileName: file.name, error: 'JSON 解析失败' });
+      }
+    }
+
+    const preview = buildImportPreview(type, entries, data);
+    if (!preview.importableCount) {
+      toast('没有可导入的有效文件', true);
+      return;
+    }
+    if (!confirm(formatImportPreview(preview) + '\n\n继续导入？')) return;
+
+    createSnapshot(data, { source: 'import', label: `导入前：${type} (${preview.importableCount} 项 / ${files.length} 个文件)` });
     toast('已自动创建导入前快照');
 
     let imported = 0;
-    for (const file of files) {
+    for (const entry of entries) {
       try {
-        const text = await file.text();
-        const obj = JSON.parse(text);
+        const fileName = entry.fileName;
+        if (entry.error) {
+          toast('解析失败：'+fileName, true);
+          continue;
+        }
+        const obj = entry.payload;
         if (type === 'dialogues') {
-          const id = obj.dialogue_id || file.name.replace('.json','');
+          const id = obj.dialogue_id || fileName.replace('.json','');
           obj.dialogue_id = id;
-          if (!validateImportPayload(type, obj, file.name)) continue;
+          if (!validateImportPayload(type, obj, fileName)) continue;
           if (await saveDoc('dialogues/'+id, 'dialogues', obj)) {
             setData({ ...data, dialogues: { ...data.dialogues, [id]: obj } });
             imported++;
           }
         } else if (type === 'game_config') {
-          if (!validateImportPayload(type, obj, file.name)) continue;
+          if (!validateImportPayload(type, obj, fileName)) continue;
           if (await saveDoc('game_config', 'game_config', obj)) {
             setData({ ...data, game_config: obj });
             imported++;
@@ -251,7 +271,7 @@ function importJSON(type) {
 
           const docId = type === 'phone' ? 'phone_chats' : type;
           const docType = type === 'phone' ? 'phone_chats' : type;
-          if (!validateImportPayload(type, target, file.name)) continue;
+          if (!validateImportPayload(type, target, fileName)) continue;
           if (await saveDoc(docId, docType, target)) {
             if (type === 'phone') setData({ ...data, phone_chats: target });
             else if (type === 'actions') setData({ ...data, actions: target });
@@ -262,7 +282,7 @@ function importJSON(type) {
             imported++;
           }
         }
-      } catch(e) { toast('解析失败：'+file.name, true); }
+      } catch(e) { toast('导入失败：'+entry.fileName, true); }
     }
     switchTab(currentTab, true);
     if (imported) toast(`已导入 ${imported} 个文件`);

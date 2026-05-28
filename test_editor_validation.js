@@ -41,12 +41,19 @@ for (const name of [
 
 assert(app.includes('getImportValidationError'), 'app.js must centralize import validation');
 assert(app.includes('validateImportPayload'), 'app.js must validate import payload before saveDoc');
+assert(app.includes("import { buildImportPreview, formatImportPreview } from './js/import_preview.js'"), 'app.js must import import preview helpers');
+assert(app.includes('const preview = buildImportPreview(type, entries, data)'), 'imports must build a preview before writing');
+assert(app.includes('formatImportPreview(preview)'), 'imports must show formatted preview before writing');
 assert(
-  app.indexOf('validateImportPayload(type, obj, file.name)') < app.indexOf("saveDoc('game_config'"),
+  app.indexOf('formatImportPreview(preview)') < app.indexOf("createSnapshot(data, { source: 'import'"),
+  'import preview must be confirmed before creating import snapshot'
+);
+assert(
+  app.indexOf('validateImportPayload(type, obj, fileName)') < app.indexOf("saveDoc('game_config'"),
   'game_config import must validate before save'
 );
 assert(
-  app.indexOf('validateImportPayload(type, target, file.name)') < app.indexOf('saveDoc(docId, docType, target)'),
+  app.indexOf('validateImportPayload(type, target, fileName)') < app.indexOf('saveDoc(docId, docType, target)'),
   'array imports must validate before save'
 );
 
