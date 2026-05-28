@@ -16,6 +16,7 @@ import {
   renderRelReqs, readRelReqs,
   validateEvent
 } from './forms.js';
+import { formatDeleteBlocker } from './delete_guards.js';
 
 export function renderEvents() {
   const tb = document.getElementById('toolbar');
@@ -175,6 +176,9 @@ async function addEvent() {
 }
 
 async function deleteEvent(i) {
+  const event = data.events[i];
+  const blocker = formatDeleteBlocker('event', event && event.id, data);
+  if (blocker) { toast(blocker, true); return; }
   if (!confirm('确定删除「'+data.events[i].name+'」？')) return;
   const newArr = [...data.events];
   newArr.splice(i, 1);

@@ -4,6 +4,9 @@ const path = require('path');
 
 const root = __dirname;
 const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+const actions = fs.readFileSync(path.join(root, 'js', 'actions.js'), 'utf8');
+const events = fs.readFileSync(path.join(root, 'js', 'events.js'), 'utf8');
+const dialogues = fs.readFileSync(path.join(root, 'js', 'dialogues.js'), 'utf8');
 const forms = fs.readFileSync(path.join(root, 'js', 'forms.js'), 'utf8');
 const world = fs.readFileSync(path.join(root, 'js', 'world.js'), 'utf8');
 
@@ -40,5 +43,9 @@ assert(
   app.indexOf('validateImportPayload(type, target, file.name)') < app.indexOf('saveDoc(docId, docType, target)'),
   'array imports must validate before save'
 );
+
+for (const [name, source] of Object.entries({ actions, events, dialogues, world })) {
+  assert(source.includes('formatDeleteBlocker'), `${name} delete handlers must use formatDeleteBlocker`);
+}
 
 console.log('editor validation smoke test passed');

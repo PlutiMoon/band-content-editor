@@ -6,6 +6,7 @@ import { data, worldSection, selectedLocationIdx, selectedNPCIdx, selectedMapIdx
   setWorldSection, setSelectedLocationIdx, setSelectedNPCIdx, setSelectedMapIdx, setData } from './state.js';
 import { saveDoc, toast, downloadJSON } from './core.js';
 import { fld, sel, esc, validateLocation, validateNPC, validateMap, validateGameConfig } from './forms.js';
+import { formatDeleteBlocker } from './delete_guards.js';
 
 export function renderWorld() {
   const tb = document.getElementById('toolbar');
@@ -226,6 +227,9 @@ async function addLocation() {
 
 async function deleteLocation(i) {
   const name = (data.locations||[])[i]?.name || '';
+  const id = (data.locations||[])[i]?.id;
+  const blocker = formatDeleteBlocker('location', id, data);
+  if (blocker) { toast(blocker, true); return; }
   if (!confirm('确定删除地点「'+name+'」？')) return;
   const newArr = [...(data.locations||[])];
   newArr.splice(i, 1);
@@ -351,6 +355,9 @@ async function addNPC() {
 
 async function deleteNPC(i) {
   const name = (data.npcs||[])[i]?.name || '';
+  const id = (data.npcs||[])[i]?.id;
+  const blocker = formatDeleteBlocker('npc', id, data);
+  if (blocker) { toast(blocker, true); return; }
   if (!confirm('确定删除NPC「'+name+'」？')) return;
   const newArr = [...(data.npcs||[])];
   newArr.splice(i, 1);
@@ -561,6 +568,9 @@ async function addMap() {
 
 async function deleteMap(i) {
   const name = (data.maps||[])[i]?.name || '';
+  const id = (data.maps||[])[i]?.id;
+  const blocker = formatDeleteBlocker('map', id, data);
+  if (blocker) { toast(blocker, true); return; }
   if (!confirm('确定删除地图「'+name+'」？')) return;
   const newArr = [...(data.maps||[])];
   newArr.splice(i, 1);

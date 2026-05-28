@@ -12,6 +12,7 @@ import {
   renderRelDeltas, readRelDeltas,
   validateDialogueNode
 } from './forms.js';
+import { formatDeleteBlocker } from './delete_guards.js';
 
 export function renderDialogues() {
   const tb = document.getElementById('toolbar');
@@ -120,6 +121,8 @@ async function addDialogue() {
 }
 
 async function deleteDialogue(dk) {
+  const blocker = formatDeleteBlocker('dialogue', dk, data);
+  if (blocker) { toast(blocker, true); return; }
   if (!confirm('确定删除对话树「'+dk+'」？此操作不可恢复！')) return;
   if (await deleteDoc('dialogues/'+dk)) {
     const newDialogues = { ...data.dialogues };

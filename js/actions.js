@@ -15,6 +15,7 @@ import {
   renderRelDeltas, readRelDeltas,
   validateAction
 } from './forms.js';
+import { formatDeleteBlocker } from './delete_guards.js';
 
 export function renderActions() {
   const tb = document.getElementById('toolbar');
@@ -173,6 +174,9 @@ async function addAction() {
 }
 
 async function deleteAction(i) {
+  const action = data.actions[i];
+  const blocker = formatDeleteBlocker('action', action && action.id, data);
+  if (blocker) { toast(blocker, true); return; }
   if (!confirm('确定删除「'+data.actions[i].name+'」？')) return;
   const newArr = [...data.actions];
   newArr.splice(i, 1);
