@@ -31,6 +31,25 @@ function renderKindOptions() {
     .join('');
 }
 
+function issuesByNode(issues) {
+  const map = new Map();
+  for (const issue of issues || []) {
+    for (const key of [issue.source, issue.target]) {
+      if (!key) continue;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(issue);
+    }
+  }
+  return map;
+}
+
+function nodeIssueState(node, issueMap) {
+  const issues = issueMap.get(node.key) || [];
+  if (issues.some(issue => issue.severity === 'error')) return 'error';
+  if (issues.length) return 'warning';
+  return 'ok';
+}
+
 function edgePath(edge, nodeByKey) {
   const source = nodeByKey.get(edge.source);
   const target = nodeByKey.get(edge.target);
@@ -53,13 +72,16 @@ function renderEdges(graph, nodeByKey) {
   }).join('');
 }
 
-function renderNodes(graph) {
+function renderNodes(graph, issueMap) {
   return graph.nodes.map(node => {
     const color = KIND_COLORS[node.kind] || '#53a8b6';
     const selected = node.key === selectedNodeKey;
+    const issueState = nodeIssueState(node, issueMap);
+    const stroke = issueState === 'error' ? 'var(--danger)' : issueState === 'warning' ? 'var(--warn)' : color;
+    const strokeWidth = selected || issueState !== 'ok' ? '2.5' : '1.5';
     const label = node.label || node.id;
     return `<g class="graph-node" data-node-key="${esc(node.key)}" transform="translate(${node.x},${node.y})" style="cursor:pointer;">
-      <rect x="-64" y="-24" width="128" height="48" rx="7" fill="var(--bg2)" stroke="${selected ? 'var(--accent)' : color}" stroke-width="${selected ? '2.5' : '1.5'}"></rect>
+      <rect x="-64" y="-24" width="128" height="48" rx="7" fill="var(--bg2)" stroke="${selected ? 'var(--accent)' : stroke}" stroke-width="${strokeWidth}"></rect>
       <circle cx="-48" cy="-8" r="4" fill="${color}"></circle>
       <text x="-36" y="-5" fill="var(--text2)" font-size="10">${esc(node.kindLabel)}</text>
       <text x="0" y="12" fill="var(--text)" font-size="12" font-weight="700" text-anchor="middle">${esc(label)}</text>
@@ -68,7 +90,7 @@ function renderNodes(graph) {
   }).join('');
 }
 
-function renderSummary(node, fullGraph) {
+function renderSummary(node, fullGraph, issueMap) {
   if (!node) {
     return `<div style="padding:12px;background:var(--bg2);border-left:3px solid var(--accent2);">
       <div style="font-size:0.75rem;color:var(--text2);">选择一个节点</div>
@@ -78,11 +100,31 @@ function renderSummary(node, fullGraph) {
   const refs = formatReferenceSummary(node.kind, node.id, data);
   const outgoing = fullGraph.edges.filter(edge => edge.source === node.key).length;
   const incoming = fullGraph.edges.filter(edge => edge.target === node.key).length;
+  const nodeIssues = issueMap.get(node.key) || [];
+  const issueText = nodeIssues.length ? ` · 问题 ${nodeIssues.length}` : '';
   return `<div style="padding:12px;background:var(--bg2);border-left:3px solid ${KIND_COLORS[node.kind] || 'var(--accent2)'};">
     <div style="font-size:0.75rem;color:var(--text2);">${esc(node.kindLabel)} / ${esc(node.id)}</div>
     <div style="font-weight:700;color:var(--text);margin:2px 0 6px;">${esc(node.label)}</div>
     <div style="color:var(--accent2);font-size:0.85rem;">${esc(refs)}</div>
-    <div style="color:var(--text2);font-size:0.78rem;margin-top:6px;">入边 ${incoming} · 出边 ${outgoing}</div>
+    <div style="color:var(--text2);font-size:0.78rem;margin-top:6px;">入边 ${incoming} · 出边 ${outgoing}${issueText}</div>
+  </div>`;
+}
+
+function renderIssueList(issues) {
+  if (!issues.length) {
+    return `<div style="margin-top:12px;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:0.85rem;">
+      当前视图没有发现断链或孤岛。
+    </div>`;
+  }
+  return `<div style="margin-top:12px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden;">
+    <div style="padding:8px 10px;color:var(--accent2);font-weight:700;border-bottom:1px solid var(--border);">问题列表</div>
+    ${issues.map(issue => {
+      const color = issue.severity === 'error' ? 'var(--danger)' : 'var(--warn)';
+      return `<button class="graph-issue" data-node-key="${esc(issue.source)}" style="display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:9px 10px;">
+        <div style="color:${color};font-weight:700;font-size:0.82rem;">${esc(issue.title)}</div>
+        <div style="color:var(--text);font-size:0.8rem;margin-top:2px;">${esc(issue.detail)}</div>
+      </button>`;
+    }).join('')}
   </div>`;
 }
 
@@ -93,11 +135,13 @@ export function renderGraph() {
   if (selectedNodeKey && !visibleKeys.has(selectedNodeKey)) selectedNodeKey = '';
 
   const nodeByKey = new Map(graph.nodes.map(node => [node.key, node]));
+  const issueMap = issuesByNode(graph.issues);
+  const fullIssueMap = issuesByNode(fullGraph.issues);
   const selectedNode = fullGraph.nodes.find(node => node.key === selectedNodeKey);
 
   const tb = document.getElementById('toolbar');
   tb.innerHTML = `<span>关系图</span>
-    <span class="hint">${graph.nodes.length} 个节点 / ${graph.edges.length} 条关系</span>
+    <span class="hint">${graph.nodes.length} 个节点 / ${graph.edges.length} 条关系 / ${graph.issues.length} 个问题</span>
     <select id="graph-kind" style="width:120px;">${renderKindOptions()}</select>`;
 
   const ct = document.getElementById('content');
@@ -110,11 +154,12 @@ export function renderGraph() {
           </marker>
         </defs>
         ${renderEdges(graph, nodeByKey)}
-        ${renderNodes(graph)}
+        ${renderNodes(graph, issueMap)}
       </svg>
     </div>
     <div>
-      ${renderSummary(selectedNode, fullGraph)}
+      ${renderSummary(selectedNode, fullGraph, fullIssueMap)}
+      ${renderIssueList(graph.issues)}
       <div style="margin-top:12px;color:var(--text2);font-size:0.78rem;line-height:1.6;">
         <div>地图 → 地点 / NPC</div>
         <div>地点 → 行动 / 事件</div>
@@ -131,6 +176,12 @@ export function renderGraph() {
   ct.querySelectorAll('.graph-node').forEach(nodeEl => {
     nodeEl.addEventListener('click', () => {
       selectedNodeKey = nodeEl.dataset.nodeKey;
+      renderGraph();
+    });
+  });
+  ct.querySelectorAll('.graph-issue').forEach(issueEl => {
+    issueEl.addEventListener('click', () => {
+      selectedNodeKey = issueEl.dataset.nodeKey;
       renderGraph();
     });
   });

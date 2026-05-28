@@ -12,6 +12,7 @@ async function main() {
     actions: [
       { id: 'practice', location: 'room', requirements: { relationships: [{ npc_id: 'npc_a', op: '>=', value: 0 }] }, effects: { relationships: [{ npc_id: 'npc_a', delta: 1 }] } },
       { id: 'sleep', location: 'bedroom' },
+      { id: 'lost_action', location: 'missing_room' },
     ],
     events: [
       { id: 'after_practice', trigger_type: 'action_complete', trigger_detail: 'practice', effects: { dialogue: 'dlg_intro' } },
@@ -30,6 +31,7 @@ async function main() {
     dialogues: {
       dlg_intro: { nodes: [{ id: 'start', text: 'hi', next: 'end', effects: { relationships: [{ npc_id: 'npc_a', delta: 1 }] } }, { id: 'end', text: '' }] },
       unused: { nodes: [{ id: 'start', text: '', next: 'end' }, { id: 'end', text: '' }] },
+      lonely_dialogue: { nodes: [{ id: 'start', text: '', next: 'end' }, { id: 'end', text: '' }] },
     },
   };
 
@@ -126,6 +128,11 @@ async function main() {
   const eventGraph = filterContentGraph(graph, 'event');
   assert(eventGraph.nodes.some(node => node.kind === 'event'));
   assert(eventGraph.edges.every(edge => edge.source.startsWith('event:') || edge.target.startsWith('event:')));
+  assert(graph.issues.some(issue => issue.type === 'missing_reference' && issue.source === 'action:lost_action' && issue.target === 'location:missing_room'));
+  assert(graph.issues.some(issue => issue.type === 'isolated_node' && issue.source === 'dialogue:lonely_dialogue'));
+  const dialogueGraph = filterContentGraph(graph, 'dialogue');
+  assert(dialogueGraph.issues.some(issue => issue.source === 'dialogue:lonely_dialogue'));
+  assert(!dialogueGraph.issues.some(issue => issue.source === 'action:lost_action'));
 }
 
 main()
