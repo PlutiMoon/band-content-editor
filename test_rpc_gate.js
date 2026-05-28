@@ -15,5 +15,9 @@ assert(core.includes("rpc('editor_delete_document'"), 'core.js must delete throu
 assert(!core.includes('ACCESS_KEY'), 'core.js must not compare the access key client-side');
 const legacyPassword = ['band', '2025'].join('');
 assert(!config.includes(legacyPassword), 'config.js must not ship the editor password');
+assert(core.includes('isAccessKeyError'), 'core.js must classify access-key RPC errors');
+assert(core.includes('resetLoginState'), 'core.js must clear saved login state after access-key errors');
+assert(core.includes('invalid editor access key'), 'core.js must recognize Supabase access-key errors');
+assert(core.includes("removeItem('band_access_key')"), 'core.js must clear stored editor access key');
 
 console.log('RPC gate smoke test passed');

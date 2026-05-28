@@ -65,6 +65,44 @@ export function hideLoading() {
   if (el) el.remove();
 }
 
+function isAccessKeyError(error) {
+  const msg = String(error?.message || error || '').toLowerCase();
+  return msg.includes('invalid editor access key') ||
+         msg.includes('invalid access key') ||
+         msg.includes('28000');
+}
+
+function resetLoginState(message) {
+  sessionStorage.removeItem('band_logged_in');
+  sessionStorage.removeItem('band_user_name');
+  sessionStorage.removeItem('band_access_key');
+  localStorage.removeItem('band_logged_in');
+  localStorage.removeItem('band_user_name');
+  localStorage.removeItem('band_access_key');
+  setEditorAccessKey('');
+
+  const login = document.getElementById('login-screen');
+  const app = document.getElementById('app');
+  const err = document.getElementById('login-error');
+  if (app) app.style.display = 'none';
+  if (login) login.style.display = 'block';
+  if (err) {
+    err.textContent = message || '访问口令错误或已轮换，请重新登录';
+    err.style.display = 'block';
+  }
+  window._appInitialized = false;
+}
+
+function handleAccessError(error, fallbackPrefix) {
+  hideLoading();
+  if (isAccessKeyError(error)) {
+    resetLoginState('访问口令错误或已轮换，请重新登录');
+    return true;
+  }
+  toast(`${fallbackPrefix}: ${error?.message || error}`, true);
+  return false;
+}
+
 // ════════════════════════════════════════════
 // DATABASE OPERATIONS
 // ════════════════════════════════════════════
@@ -76,7 +114,7 @@ export async function pullFromDB() {
     const { data: rows, error } = await supabase.rpc('editor_list_documents', {
       input_key: editorAccessKey
     });
-    if (error) { hideLoading(); toast('拉取失败: ' + error.message, true); return; }
+    if (error) { handleAccessError(error, '拉取失败'); return; }
     if (!rows || rows.length === 0) {
       hideLoading();
       toast('数据库为空，请先导入数据');
@@ -89,8 +127,7 @@ export async function pullFromDB() {
     toast('已从数据库同步');
     if (window._switchTab) window._switchTab(currentTab, true);
   } catch (e) {
-    hideLoading();
-    toast('连接失败: ' + e.message, true);
+    handleAccessError(e, '连接失败');
   }
 }
 
@@ -155,10 +192,13 @@ export async function saveDoc(id, type, docData) {
       doc_data: docData,
       updater: userName
     });
-    if (error) { toast('保存失败: ' + error.message, true); return false; }
+    if (error) {
+      handleAccessError(error, '保存失败');
+      return false;
+    }
     return true;
   } catch (e) {
-    toast('保存失败: ' + e.message, true);
+    handleAccessError(e, '保存失败');
     return false;
   }
 }
@@ -171,10 +211,13 @@ export async function deleteDoc(id) {
       input_key: editorAccessKey,
       doc_id: id
     });
-    if (error) { toast('删除失败: ' + error.message, true); return false; }
+    if (error) {
+      handleAccessError(error, '删除失败');
+      return false;
+    }
     return true;
   } catch (e) {
-    toast('删除失败: ' + e.message, true);
+    handleAccessError(e, '删除失败');
     return false;
   }
 }
