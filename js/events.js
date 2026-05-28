@@ -16,7 +16,8 @@ import {
   renderRelReqs, readRelReqs,
   validateEvent
 } from './forms.js';
-import { formatDeleteBlocker, formatReferenceSummary } from './delete_guards.js';
+import { formatDeleteBlocker, formatReferenceSummary, rewriteContentReferences } from './delete_guards.js';
+import { confirmReferenceRewrite, saveReferenceMigration } from './reference_migrations.js';
 
 export function renderEvents() {
   const tb = document.getElementById('toolbar');
@@ -129,6 +130,7 @@ function renderEventDetail() {
 
 async function saveEventDetail() {
   const e = data.events[selectedIdx];
+  const oldId = e.id;
   e.id = document.getElementById('evt_id').value.trim();
   e.name = document.getElementById('evt_name').value.trim();
   e.trigger_type = document.getElementById('evt_tt').value;
@@ -138,6 +140,10 @@ async function saveEventDetail() {
 
   const err = validateEvent(e, data.events);
   if (err) { toast(err, true); return; }
+  if (!confirmReferenceRewrite('event', oldId, e.id, data)) {
+    e.id = oldId;
+    return;
+  }
 
   const c = {};
   const cd = parseInt(document.getElementById('evt_cond_day').value); if (!isNaN(cd)) c.day = cd;
@@ -158,7 +164,12 @@ async function saveEventDetail() {
   const fd = document.getElementById('evt_fx_dialogue').value.trim(); if (fd) fx.dialogue = fd;
   e.effects = fx;
 
+  const migration = rewriteContentReferences('event', oldId, e.id, data);
   if (await saveDoc('events', 'events', data.events)) {
+    if (!(await saveReferenceMigration(migration, data))) {
+      toast('已保存事件，但同步引用失败，请重新拉取检查', true);
+      return;
+    }
     toast('已保存');
     renderEvents();
   }

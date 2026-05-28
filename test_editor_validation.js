@@ -50,6 +50,13 @@ for (const [name, source] of Object.entries({ actions, events, dialogues, world 
   assert(source.includes('formatReferenceSummary'), `${name} detail views must show reference summaries`);
 }
 
+assert(actions.includes('confirmReferenceRewrite'), 'actions must confirm ID reference rewrites');
+assert(events.includes('confirmReferenceRewrite'), 'events must confirm ID reference rewrites');
+assert(world.includes('confirmReferenceRewrite'), 'world must confirm ID reference rewrites');
+assert(actions.includes('saveReferenceMigration'), 'actions must save ID reference rewrites');
+assert(events.includes('saveReferenceMigration'), 'events must save ID reference rewrites');
+assert(world.includes('saveReferenceMigration'), 'world must save ID reference rewrites');
+
 assert(index.includes('data-tab="health"'), 'index.html must expose the health tab');
 assert(index.includes('value="health"'), 'mobile tab select must include health');
 assert(index.includes('data-tab="snapshots"'), 'index.html must expose the snapshots tab');

@@ -6,7 +6,8 @@ import { data, worldSection, selectedLocationIdx, selectedNPCIdx, selectedMapIdx
   setWorldSection, setSelectedLocationIdx, setSelectedNPCIdx, setSelectedMapIdx, setData } from './state.js';
 import { saveDoc, toast, downloadJSON } from './core.js';
 import { fld, sel, esc, validateLocation, validateNPC, validateMap, validateGameConfig } from './forms.js';
-import { formatDeleteBlocker, formatReferenceSummary } from './delete_guards.js';
+import { formatDeleteBlocker, formatReferenceSummary, rewriteContentReferences } from './delete_guards.js';
+import { confirmReferenceRewrite, saveReferenceMigration } from './reference_migrations.js';
 
 export function renderWorld() {
   const tb = document.getElementById('toolbar');
@@ -182,6 +183,7 @@ function renderLocationDetail(ct) {
 
 async function saveLocationDetail() {
   const l = data.locations[selectedLocationIdx];
+  const oldId = l.id;
   l.id = document.getElementById('loc_id').value.trim();
   l.name = document.getElementById('loc_name').value.trim();
   l.map_id = document.getElementById('loc_map_id')?.value || 'old_town';
@@ -203,8 +205,17 @@ async function saveLocationDetail() {
   if (!l.id) { toast('ID 不能为空', true); return; }
   const err = validateLocation(l, data.locations);
   if (err) { toast(err, true); return; }
+  if (!confirmReferenceRewrite('location', oldId, l.id, data)) {
+    l.id = oldId;
+    return;
+  }
 
+  const migration = rewriteContentReferences('location', oldId, l.id, data);
   if (await saveDoc('locations', 'locations', data.locations)) {
+    if (!(await saveReferenceMigration(migration, data))) {
+      toast('已保存地点，但同步引用失败，请重新拉取检查', true);
+      return;
+    }
     toast('已保存地点');
     renderWorld();
   }
@@ -323,6 +334,7 @@ function renderNPCDetail(ct) {
 
 async function saveNPCDetail() {
   const n = data.npcs[selectedNPCIdx];
+  const oldId = n.id;
   n.id = document.getElementById('npc_id').value.trim();
   n.name = document.getElementById('npc_name').value.trim();
   n.map_id = document.getElementById('npc_map_id')?.value || 'old_town';
@@ -335,8 +347,17 @@ async function saveNPCDetail() {
   if (!n.id) { toast('ID 不能为空', true); return; }
   const err = validateNPC(n, data.npcs);
   if (err) { toast(err, true); return; }
+  if (!confirmReferenceRewrite('npc', oldId, n.id, data)) {
+    n.id = oldId;
+    return;
+  }
 
+  const migration = rewriteContentReferences('npc', oldId, n.id, data);
   if (await saveDoc('npcs', 'npcs', data.npcs)) {
+    if (!(await saveReferenceMigration(migration, data))) {
+      toast('已保存NPC，但同步引用失败，请重新拉取检查', true);
+      return;
+    }
     toast('已保存NPC');
     renderWorld();
   }
@@ -507,6 +528,7 @@ function renderMapDetail(ct) {
 
 async function saveMapDetail() {
   const m = data.maps[selectedMapIdx];
+  const oldId = m.id;
   m.id = document.getElementById('map_id').value.trim();
   m.name = document.getElementById('map_name').value.trim();
   m.scene_path = document.getElementById('map_scene').value.trim();
@@ -540,8 +562,17 @@ async function saveMapDetail() {
   if (!m.id) { toast('ID 不能为空', true); return; }
   const err = validateMap(m, data.maps);
   if (err) { toast(err, true); return; }
+  if (!confirmReferenceRewrite('map', oldId, m.id, data)) {
+    m.id = oldId;
+    return;
+  }
 
+  const migration = rewriteContentReferences('map', oldId, m.id, data);
   if (await saveDoc('maps', 'maps', data.maps)) {
+    if (!(await saveReferenceMigration(migration, data))) {
+      toast('已保存地图，但同步引用失败，请重新拉取检查', true);
+      return;
+    }
     toast('已保存地图');
     renderWorld();
   }

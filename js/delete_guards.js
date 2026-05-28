@@ -11,6 +11,18 @@ function relationshipRefs(obj, npcId) {
   return (obj && Array.isArray(obj.relationships) && obj.relationships.some(r => r.npc_id === npcId));
 }
 
+function rewriteRelationshipRefs(obj, oldId, newId) {
+  if (!obj || !Array.isArray(obj.relationships)) return false;
+  let changed = false;
+  for (const rel of obj.relationships) {
+    if (rel.npc_id === oldId) {
+      rel.npc_id = newId;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 function addActionReferences(refs, project, id) {
   for (const event of project.events || []) {
     if (event.trigger_type === 'action_complete' && event.trigger_detail === id) {
@@ -101,4 +113,115 @@ export function formatReferenceSummary(kind, id, project) {
   const shown = refs.slice(0, 3);
   const suffix = refs.length > shown.length ? ` 等 ${refs.length} 处` : '';
   return `被 ${refs.length} 处引用：${shown.join('、')}${suffix}`;
+}
+
+export function rewriteContentReferences(kind, oldId, newId, project) {
+  const docs = new Set();
+  const dialogues = new Set();
+  if (!project || !oldId || !newId || oldId === newId) {
+    return { changed: false, docs: [], dialogues: [] };
+  }
+
+  if (kind === 'action') {
+    for (const event of project.events || []) {
+      if (event.trigger_type === 'action_complete' && event.trigger_detail === oldId) {
+        event.trigger_detail = newId;
+        docs.add('events');
+      }
+    }
+  }
+
+  if (kind === 'event') {
+    for (const chat of project.phone_chats || []) {
+      for (const msg of chat.messages || []) {
+        if (msg.trigger_event === oldId) {
+          msg.trigger_event = newId;
+          docs.add('phone_chats');
+        }
+      }
+    }
+  }
+
+  if (kind === 'dialogue') {
+    for (const event of project.events || []) {
+      if (event.effects && event.effects.dialogue === oldId) {
+        event.effects.dialogue = newId;
+        docs.add('events');
+      }
+    }
+    for (const npc of project.npcs || []) {
+      if (npc.dialogue_id === oldId) {
+        npc.dialogue_id = newId;
+        docs.add('npcs');
+      }
+    }
+  }
+
+  if (kind === 'location') {
+    for (const action of project.actions || []) {
+      if (action.location === oldId) {
+        action.location = newId;
+        docs.add('actions');
+      }
+    }
+    for (const event of project.events || []) {
+      if (event.trigger_type === 'location' && event.trigger_detail === oldId) {
+        event.trigger_detail = newId;
+        docs.add('events');
+      }
+    }
+    if (project.game_config && project.game_config.starting_location === oldId) {
+      project.game_config.starting_location = newId;
+      docs.add('game_config');
+    }
+  }
+
+  if (kind === 'map') {
+    for (const location of project.locations || []) {
+      if (location.map_id === oldId) {
+        location.map_id = newId;
+        docs.add('locations');
+      }
+    }
+    for (const npc of project.npcs || []) {
+      if (npc.map_id === oldId) {
+        npc.map_id = newId;
+        docs.add('npcs');
+      }
+    }
+    if (project.game_config && project.game_config.starting_map === oldId) {
+      project.game_config.starting_map = newId;
+      docs.add('game_config');
+    }
+  }
+
+  if (kind === 'npc') {
+    for (const action of project.actions || []) {
+      const changedRequirements = rewriteRelationshipRefs(action.requirements, oldId, newId);
+      const changedEffects = rewriteRelationshipRefs(action.effects, oldId, newId);
+      if (changedRequirements || changedEffects) {
+        docs.add('actions');
+      }
+    }
+    for (const event of project.events || []) {
+      const changedConditions = rewriteRelationshipRefs(event.conditions, oldId, newId);
+      const changedEffects = rewriteRelationshipRefs(event.effects, oldId, newId);
+      if (changedConditions || changedEffects) {
+        docs.add('events');
+      }
+    }
+    for (const [dialogueId, dialogue] of Object.entries(project.dialogues || {})) {
+      for (const node of dialogue.nodes || []) {
+        if (rewriteRelationshipRefs(node.effects, oldId, newId)) {
+          dialogues.add(dialogueId);
+        }
+      }
+    }
+  }
+
+  return {
+    changed: docs.size > 0 || dialogues.size > 0,
+    docs: [...docs],
+    dialogues: [...dialogues],
+  };
 }

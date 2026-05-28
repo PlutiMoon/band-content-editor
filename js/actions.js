@@ -15,7 +15,8 @@ import {
   renderRelDeltas, readRelDeltas,
   validateAction
 } from './forms.js';
-import { formatDeleteBlocker, formatReferenceSummary } from './delete_guards.js';
+import { formatDeleteBlocker, formatReferenceSummary, rewriteContentReferences } from './delete_guards.js';
+import { confirmReferenceRewrite, saveReferenceMigration } from './reference_migrations.js';
 
 export function renderActions() {
   const tb = document.getElementById('toolbar');
@@ -129,6 +130,7 @@ function renderActionDetail() {
 
 async function saveActionDetail() {
   const a = data.actions[selectedIdx];
+  const oldId = a.id;
   a.id = document.getElementById('act_id').value.trim();
   a.name = document.getElementById('act_name').value.trim();
   a.description = document.getElementById('act_desc').value.trim();
@@ -138,6 +140,10 @@ async function saveActionDetail() {
 
   const err = validateAction(a, data.actions);
   if (err) { toast(err, true); return; }
+  if (!confirmReferenceRewrite('action', oldId, a.id, data)) {
+    a.id = oldId;
+    return;
+  }
 
   const reqs = {};
   const rs = readStatReqs('act_req_stats'); if (rs.length) reqs.stats = rs;
@@ -156,7 +162,12 @@ async function saveActionDetail() {
   if (document.getElementById('act_fx_sleep')?.checked) fx.sleep = true;
   a.effects = fx;
 
+  const migration = rewriteContentReferences('action', oldId, a.id, data);
   if (await saveDoc('actions', 'actions', data.actions)) {
+    if (!(await saveReferenceMigration(migration, data))) {
+      toast('已保存行动，但同步引用失败，请重新拉取检查', true);
+      return;
+    }
     toast('已保存');
     renderActions();
   }
