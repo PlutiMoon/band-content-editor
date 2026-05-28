@@ -28,6 +28,7 @@ import { renderSnapshots, createManualSnapshot } from './js/snapshots.js';
 import { createSnapshot } from './js/snapshot_store.js';
 import { renderReferences } from './js/references.js';
 import { renderGraph } from './js/graph.js';
+import { renderSearch } from './js/search.js';
 import { renderReleases } from './js/releases.js';
 import { createReleaseRecord } from './js/release_store.js';
 import { renderAudit } from './js/audit.js';
@@ -128,6 +129,7 @@ function switchTab(tab, silent) {
     case 'snapshots': renderSnapshots(); break;
     case 'references': renderReferences(); break;
     case 'graph': renderGraph(); break;
+    case 'search': renderSearch(); break;
     case 'releases': renderReleases(); break;
     case 'audit': renderAudit(); break;
   }
