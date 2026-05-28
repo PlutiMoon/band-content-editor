@@ -15,6 +15,7 @@ const health = fs.readFileSync(path.join(root, 'js', 'health.js'), 'utf8');
 const healthCheck = fs.readFileSync(path.join(root, 'js', 'health_check.js'), 'utf8');
 const graph = fs.readFileSync(path.join(root, 'js', 'graph.js'), 'utf8');
 const search = fs.readFileSync(path.join(root, 'js', 'search.js'), 'utf8');
+const snapshots = fs.readFileSync(path.join(root, 'js', 'snapshots.js'), 'utf8');
 
 for (const name of ['validateLocation', 'validateNPC', 'validateMap', 'validateGameConfig']) {
   assert(forms.includes(`export function ${name}`), `forms.js must export ${name}`);
@@ -96,6 +97,8 @@ assert(healthCheck.includes('graph_isolated_node'), 'health check must report gr
 assert(app.includes("import { renderSnapshots, createManualSnapshot } from './js/snapshots.js'"), 'app.js must import snapshots UI');
 assert(app.includes("case 'snapshots': renderSnapshots(); break;"), 'app.js must route the snapshots tab');
 assert(app.includes("createSnapshot(data, { source: 'import'"), 'imports must create a snapshot before writing data');
+assert(snapshots.includes('diffContent'), 'snapshots UI must compare snapshot content');
+assert(snapshots.includes('data-snap-compare'), 'snapshots UI must expose compare buttons');
 assert(app.includes("import { renderReferences } from './js/references.js'"), 'app.js must import references UI');
 assert(app.includes("case 'references': renderReferences(); break;"), 'app.js must route the references tab');
 assert(app.includes("import { renderGraph } from './js/graph.js'"), 'app.js must import graph UI');

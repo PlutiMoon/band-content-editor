@@ -7,6 +7,9 @@ import {
   exportSnapshotPayload,
   listSnapshots
 } from './snapshot_store.js';
+import { diffContent, formatDiffSummary } from './content_diff.js';
+
+let selectedCompareSnapshotId = '';
 
 function snapshotLabel(snapshot) {
   return snapshot.label || (snapshot.source === 'import' ? '导入前快照' : '手动快照');
@@ -99,6 +102,7 @@ function renderSnapshotRows(snapshots) {
       <td>${esc(snapshotLabel(snapshot))}</td>
       <td style="font-size:0.75rem;">${esc(countSummary(snapshot))}</td>
       <td style="white-space:nowrap;">
+        <button class="btn-sm" data-snap-compare="${snapshot.id}">对比当前</button>
         <button class="btn-sm" data-snap-export="${snapshot.id}">导出</button>
         <button class="btn-sm btn-ok" data-snap-restore="${snapshot.id}">恢复</button>
         <button class="btn-sm btn-danger" data-snap-delete="${snapshot.id}">删除</button>
@@ -109,8 +113,41 @@ function renderSnapshotRows(snapshots) {
   return html;
 }
 
+function renderComparePanel(snapshots) {
+  if (!selectedCompareSnapshotId) return '';
+  const snapshot = snapshots.find(item => item.id === selectedCompareSnapshotId);
+  if (!snapshot) return '';
+  const diff = diffContent(snapshot.data || {}, data);
+  if (!diff.items.length) {
+    return `<div style="padding:12px;background:var(--bg2);border-left:3px solid var(--ok);margin-bottom:12px;">
+      <div style="font-weight:700;color:var(--ok);">对比当前：无差异</div>
+      <div class="hint">${esc(snapshotLabel(snapshot))}</div>
+    </div>`;
+  }
+  let rows = '';
+  for (const item of diff.items) {
+    const opLabel = item.operation === 'added' ? '新增' : item.operation === 'removed' ? '删除' : '修改';
+    const color = item.operation === 'added' ? 'var(--ok)' : item.operation === 'removed' ? 'var(--danger)' : 'var(--warn)';
+    rows += `<tr>
+      <td style="color:${color};font-weight:700;">${opLabel}</td>
+      <td>${esc(item.kindLabel)}</td>
+      <td><code>${esc(item.id)}</code></td>
+    </tr>`;
+  }
+  return `<div style="margin-bottom:12px;">
+    <div style="padding:12px;background:var(--bg2);border-left:3px solid var(--accent2);margin-bottom:8px;">
+      <div style="font-weight:700;color:var(--accent2);">对比当前：${esc(formatDiffSummary(diff))}</div>
+      <div class="hint">${esc(snapshotLabel(snapshot))}</div>
+    </div>
+    <table><thead><tr><th>变化</th><th>类型</th><th>ID</th></tr></thead><tbody>${rows}</tbody></table>
+  </div>`;
+}
+
 export function renderSnapshots() {
   const snapshots = listSnapshots();
+  if (selectedCompareSnapshotId && !snapshots.some(item => item.id === selectedCompareSnapshotId)) {
+    selectedCompareSnapshotId = '';
+  }
   const tb = document.getElementById('toolbar');
   tb.innerHTML = `<span>快照</span>
     <span class="hint">本机保留最近 ${snapshots.length} / 10 个快照</span>
@@ -118,6 +155,7 @@ export function renderSnapshots() {
 
   const ct = document.getElementById('content');
   ct.innerHTML = `<div style="padding:12px 0;">
+    ${renderComparePanel(snapshots)}
     ${renderSnapshotRows(snapshots)}
   </div>`;
 
@@ -131,6 +169,13 @@ export function renderSnapshots() {
       const snapshot = listSnapshots().find(item => item.id === this.dataset.snapExport);
       if (!snapshot) return;
       downloadJSON(`band_snapshot_${snapshot.created_at}.json`, exportSnapshotPayload(snapshot));
+    });
+  });
+
+  ct.querySelectorAll('[data-snap-compare]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      selectedCompareSnapshotId = this.dataset.snapCompare;
+      renderSnapshots();
     });
   });
 
