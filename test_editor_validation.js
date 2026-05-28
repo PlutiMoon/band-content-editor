@@ -94,6 +94,8 @@ assert(graph.includes('filterContentGraph'), 'graph UI must support relationship
 assert(app.includes("import { renderSearch } from './js/search.js'"), 'app.js must import search UI');
 assert(app.includes("case 'search': renderSearch(); break;"), 'app.js must route the search tab');
 assert(search.includes('searchContent'), 'search UI must use the global search helper');
+assert(search.includes('resolveSearchNavigation'), 'search UI must resolve result navigation');
+assert(search.includes('window._switchTab'), 'search UI must switch tabs when opening results');
 assert(app.includes("import { renderReleases } from './js/releases.js'"), 'app.js must import releases UI');
 assert(app.includes("case 'releases': renderReleases(); break;"), 'app.js must route the releases tab');
 assert(app.includes("import { renderAudit } from './js/audit.js'"), 'app.js must import audit UI');

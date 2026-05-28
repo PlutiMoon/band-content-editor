@@ -134,3 +134,43 @@ export function searchContent(project, query, options = {}) {
       score,
     }));
 }
+
+export function resolveSearchNavigation(project, path) {
+  if (!path) return null;
+  if (path === 'game_config') return { tab: 'world', worldSection: 'config' };
+
+  const [kind, rest = ''] = String(path).split(':');
+  const [id] = rest.split('/');
+  if (!id) return null;
+
+  if (kind === 'action') {
+    const selectedIdx = (project?.actions || []).findIndex(item => item.id === id);
+    return selectedIdx >= 0 ? { tab: 'actions', selectedIdx } : null;
+  }
+  if (kind === 'event') {
+    const selectedIdx = (project?.events || []).findIndex(item => item.id === id);
+    return selectedIdx >= 0 ? { tab: 'events', selectedIdx } : null;
+  }
+  if (kind === 'dialogue') {
+    const keys = Object.keys(project?.dialogues || {});
+    const selectedDialogueIdx = keys.indexOf(id);
+    return selectedDialogueIdx >= 0 ? { tab: 'dialogues', selectedDialogueIdx } : null;
+  }
+  if (kind === 'phone') {
+    const selectedChatIdx = (project?.phone_chats || []).findIndex(item => item.chat_id === id);
+    return selectedChatIdx >= 0 ? { tab: 'phone', selectedChatIdx } : null;
+  }
+  if (kind === 'location') {
+    const selectedLocationIdx = (project?.locations || []).findIndex(item => item.id === id);
+    return selectedLocationIdx >= 0 ? { tab: 'world', worldSection: 'locations', selectedLocationIdx } : null;
+  }
+  if (kind === 'map') {
+    const selectedMapIdx = (project?.maps || []).findIndex(item => item.id === id);
+    return selectedMapIdx >= 0 ? { tab: 'world', worldSection: 'maps', selectedMapIdx } : null;
+  }
+  if (kind === 'npc') {
+    const selectedNPCIdx = (project?.npcs || []).findIndex(item => item.id === id);
+    return selectedNPCIdx >= 0 ? { tab: 'world', worldSection: 'npcs', selectedNPCIdx } : null;
+  }
+  return null;
+}

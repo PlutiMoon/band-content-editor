@@ -1,6 +1,22 @@
-import { data } from './state.js';
+import {
+  data,
+  setSelectedIdx,
+  setSelectedDialogueIdx,
+  setSelectedChatIdx,
+  setMobilePhoneView,
+  setMobileDialogueView,
+  setWorldSection,
+  setSelectedLocationIdx,
+  setSelectedNPCIdx,
+  setSelectedMapIdx,
+} from './state.js';
 import { esc } from './forms.js';
-import { searchContent } from './search_index.js';
+import { renderActions } from './actions.js';
+import { renderEvents } from './events.js';
+import { renderDialogues } from './dialogues.js';
+import { renderPhone } from './phone.js';
+import { renderWorld } from './world.js';
+import { resolveSearchNavigation, searchContent } from './search_index.js';
 
 const KIND_OPTIONS = [
   ['all', '全部'],
@@ -34,17 +50,46 @@ function renderResults(results) {
       没有找到匹配内容。
     </div>`;
   }
-  let html = '<table><thead><tr><th>类型</th><th>位置</th><th>名称</th><th>片段</th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th>类型</th><th>位置</th><th>名称</th><th>片段</th><th></th></tr></thead><tbody>';
   for (const result of results) {
-    html += `<tr>
+    html += `<tr class="search-result" data-search-path="${esc(result.path)}">
       <td>${esc(result.kindLabel)}</td>
       <td><code>${esc(result.path)}</code></td>
       <td>${esc(result.label)}</td>
       <td>${esc(result.snippet)}</td>
+      <td><button class="btn-sm search-open" data-search-path="${esc(result.path)}">打开</button></td>
     </tr>`;
   }
   html += '</tbody></table>';
   return html;
+}
+
+function openSearchResult(path) {
+  const nav = resolveSearchNavigation(data, path);
+  if (!nav || !window._switchTab) return;
+  window._switchTab(nav.tab);
+
+  if (nav.tab === 'actions') {
+    setSelectedIdx(nav.selectedIdx);
+    renderActions();
+  } else if (nav.tab === 'events') {
+    setSelectedIdx(nav.selectedIdx);
+    renderEvents();
+  } else if (nav.tab === 'dialogues') {
+    setSelectedDialogueIdx(nav.selectedDialogueIdx);
+    setMobileDialogueView('nodes');
+    renderDialogues();
+  } else if (nav.tab === 'phone') {
+    setSelectedChatIdx(nav.selectedChatIdx);
+    setMobilePhoneView('chat');
+    renderPhone();
+  } else if (nav.tab === 'world') {
+    setWorldSection(nav.worldSection || 'config');
+    setSelectedLocationIdx(nav.selectedLocationIdx ?? -1);
+    setSelectedNPCIdx(nav.selectedNPCIdx ?? -1);
+    setSelectedMapIdx(nav.selectedMapIdx ?? -1);
+    renderWorld();
+  }
 }
 
 export function renderSearch() {
@@ -76,4 +121,10 @@ export function renderSearch() {
     searchQuery = '';
     renderSearch();
   };
+  ct.querySelectorAll('.search-result, .search-open').forEach(el => {
+    el.onclick = function(e) {
+      e.stopPropagation();
+      openSearchResult(this.dataset.searchPath);
+    };
+  });
 }

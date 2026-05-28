@@ -4,7 +4,7 @@ const { pathToFileURL } = require('url');
 
 async function main() {
   const mod = await import(pathToFileURL(path.join(__dirname, 'js', 'search_index.js')).href);
-  const { searchContent } = mod;
+  const { searchContent, resolveSearchNavigation } = mod;
 
   const project = {
     actions: [
@@ -48,6 +48,15 @@ async function main() {
   assert(!dialogueOnly.some(result => result.kind === 'action'));
 
   assert.deepStrictEqual(searchContent(project, '   '), []);
+
+  assert.deepStrictEqual(resolveSearchNavigation(project, 'action:practice'), { tab: 'actions', selectedIdx: 0 });
+  assert.deepStrictEqual(resolveSearchNavigation(project, 'dialogue:dlg_intro/start'), { tab: 'dialogues', selectedDialogueIdx: 0 });
+  assert.deepStrictEqual(resolveSearchNavigation(project, 'phone:band/m1'), { tab: 'phone', selectedChatIdx: 0 });
+  assert.deepStrictEqual(resolveSearchNavigation(project, 'location:room'), { tab: 'world', worldSection: 'locations', selectedLocationIdx: 0 });
+  assert.deepStrictEqual(resolveSearchNavigation(project, 'map:town'), { tab: 'world', worldSection: 'maps', selectedMapIdx: 0 });
+  assert.deepStrictEqual(resolveSearchNavigation(project, 'npc:alice'), { tab: 'world', worldSection: 'npcs', selectedNPCIdx: 0 });
+  assert.deepStrictEqual(resolveSearchNavigation(project, 'game_config'), { tab: 'world', worldSection: 'config' });
+  assert.strictEqual(resolveSearchNavigation(project, 'action:missing'), null);
 }
 
 main()
