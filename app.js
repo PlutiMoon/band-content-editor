@@ -27,6 +27,8 @@ import { renderHealth } from './js/health.js';
 import { renderSnapshots, createManualSnapshot } from './js/snapshots.js';
 import { createSnapshot } from './js/snapshot_store.js';
 import { renderReferences } from './js/references.js';
+import { renderReleases } from './js/releases.js';
+import { createReleaseRecord } from './js/release_store.js';
 import { buildPublishGate, formatPublishGateMessage } from './js/publish_gate.js';
 import {
   validateAction,
@@ -122,6 +124,7 @@ function switchTab(tab, silent) {
     case 'health': renderHealth(); break;
     case 'snapshots': renderSnapshots(); break;
     case 'references': renderReferences(); break;
+    case 'releases': renderReleases(); break;
   }
 }
 window._switchTab = switchTab;
@@ -272,6 +275,21 @@ window.exportAll = function() {
     switchTab('health');
     return;
   }
+  const files = [
+    'actions.json',
+    'events.json',
+    ...Object.keys(data.dialogues || {}).map(id => id + '.json'),
+    'maps.json',
+    'phone_chat.json',
+  ];
+  const releaseSnapshot = createSnapshot(data, { source: 'release', label: '发布导出前快照' });
+  const releaseRecord = createReleaseRecord({
+    snapshot: releaseSnapshot,
+    gate,
+    user: userName,
+    files,
+    data,
+  });
   downloadJSON('actions.json', data.actions);
   toast('已导出 actions.json');
   downloadJSON('events.json', data.events);
@@ -282,7 +300,7 @@ window.exportAll = function() {
   toast('已导出 maps.json');
   downloadJSON('phone_chat.json', data.phone_chats);
   toast('已导出 phone_chat.json');
-  toast('全部导出完成');
+  toast(`全部导出完成：${releaseRecord.version}`);
 };
 
 // ════════════════════════════════════════════

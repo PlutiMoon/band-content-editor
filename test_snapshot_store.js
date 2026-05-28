@@ -13,6 +13,7 @@ function createMemoryStorage() {
 
 async function main() {
   const mod = await import(pathToFileURL(path.join(__dirname, 'js', 'snapshot_store.js')).href);
+  const releaseMod = await import(pathToFileURL(path.join(__dirname, 'js', 'release_store.js')).href);
   const {
     SNAPSHOT_KEY,
     createSnapshot,
@@ -20,6 +21,13 @@ async function main() {
     deleteSnapshot,
     exportSnapshotPayload,
   } = mod;
+  const {
+    RELEASE_RECORDS_KEY,
+    createReleaseRecord,
+    listReleaseRecords,
+    deleteReleaseRecord,
+    exportReleaseRecordPayload,
+  } = releaseMod;
 
   const storage = createMemoryStorage();
   const first = createSnapshot(
@@ -59,6 +67,64 @@ async function main() {
 
   storage.setItem(SNAPSHOT_KEY, '{not json');
   assert.deepStrictEqual(listSnapshots(storage), []);
+
+  const releaseStorage = createMemoryStorage();
+  const release = createReleaseRecord({
+    version: 'content-test-001',
+    snapshot: { id: 'snap_release_1' },
+    gate: { status: 'pass', errorCount: 0, warningCount: 0, repairableCount: 0, manualCount: 0 },
+    user: 'Alice',
+    files: ['actions.json', 'events.json'],
+    data: {
+      actions: [{ id: 'a1' }],
+      events: [{ id: 'e1' }],
+      dialogues: { intro: {} },
+      phone_chats: [{ chat_id: 'band' }],
+      maps: [{ id: 'town' }],
+      locations: [{ id: 'room' }],
+      npcs: [{ id: 'npc_a' }],
+    },
+  }, { storage: releaseStorage, now: () => 3000 });
+
+  assert(release.id);
+  assert.strictEqual(release.version, 'content-test-001');
+  assert.strictEqual(release.snapshot_id, 'snap_release_1');
+  assert.strictEqual(release.user, 'Alice');
+  assert.deepStrictEqual(release.files, ['actions.json', 'events.json']);
+  assert.strictEqual(release.counts.actions, 1);
+  assert.strictEqual(release.counts.dialogues, 1);
+  assert.strictEqual(listReleaseRecords(releaseStorage).length, 1);
+
+  release.counts.actions = 99;
+  assert.strictEqual(listReleaseRecords(releaseStorage)[0].counts.actions, 1);
+
+  for (let i = 0; i < 22; i++) {
+    createReleaseRecord({
+      snapshot: { id: `snap_${i}` },
+      gate: { status: 'warning', errorCount: 0, warningCount: 1, repairableCount: 0, manualCount: 1 },
+      user: 'Bob',
+      files: ['actions.json'],
+      data: { actions: [], events: [], dialogues: {}, phone_chats: [], maps: [], locations: [], npcs: [] },
+    }, { storage: releaseStorage, now: () => 4000 + i });
+  }
+
+  const releases = listReleaseRecords(releaseStorage);
+  assert.strictEqual(releases.length, 20);
+  assert.strictEqual(releases[0].created_at, 4021);
+  assert.strictEqual(releases[19].created_at, 4002);
+  assert(releases[0].version.startsWith('content-'));
+
+  const releasePayload = exportReleaseRecordPayload(releases[0]);
+  assert(releasePayload.release);
+  assert.strictEqual(releasePayload.release.snapshot_id, releases[0].snapshot_id);
+
+  const releaseId = releases[0].id;
+  assert.strictEqual(deleteReleaseRecord(releaseId, releaseStorage), true);
+  assert(!listReleaseRecords(releaseStorage).some(item => item.id === releaseId));
+  assert.strictEqual(deleteReleaseRecord('missing', releaseStorage), false);
+
+  releaseStorage.setItem(RELEASE_RECORDS_KEY, '{not json');
+  assert.deepStrictEqual(listReleaseRecords(releaseStorage), []);
 }
 
 main()

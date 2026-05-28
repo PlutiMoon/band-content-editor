@@ -64,6 +64,8 @@ assert(index.includes('data-tab="snapshots"'), 'index.html must expose the snaps
 assert(index.includes('value="snapshots"'), 'mobile tab select must include snapshots');
 assert(index.includes('data-tab="references"'), 'index.html must expose the references tab');
 assert(index.includes('value="references"'), 'mobile tab select must include references');
+assert(index.includes('data-tab="releases"'), 'index.html must expose the releases tab');
+assert(index.includes('value="releases"'), 'mobile tab select must include releases');
 assert(index.includes('_createManualSnapshot'), 'index.html must expose manual snapshot creation');
 assert(app.includes("import { renderHealth } from './js/health.js'"), 'app.js must import renderHealth');
 assert(app.includes("case 'health': renderHealth(); break;"), 'app.js must route the health tab');
@@ -76,6 +78,10 @@ assert(app.includes("case 'snapshots': renderSnapshots(); break;"), 'app.js must
 assert(app.includes("createSnapshot(data, { source: 'import'"), 'imports must create a snapshot before writing data');
 assert(app.includes("import { renderReferences } from './js/references.js'"), 'app.js must import references UI');
 assert(app.includes("case 'references': renderReferences(); break;"), 'app.js must route the references tab');
+assert(app.includes("import { renderReleases } from './js/releases.js'"), 'app.js must import releases UI');
+assert(app.includes("case 'releases': renderReleases(); break;"), 'app.js must route the releases tab');
+assert(app.includes("import { createReleaseRecord } from './js/release_store.js'"), 'app.js must import release records');
+assert(app.includes('createReleaseRecord({'), 'exportAll must record successful releases');
 assert(app.includes("import { buildPublishGate, formatPublishGateMessage } from './js/publish_gate.js'"), 'app.js must import publish gate');
 assert(app.includes('const gate = buildPublishGate(data)'), 'exportAll must run publish gate');
 assert(app.includes("switchTab('health'"), 'blocked export must send user to health tab');
