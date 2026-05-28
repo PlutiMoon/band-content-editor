@@ -23,6 +23,7 @@ import { renderEvents } from './js/events.js';
 import { renderDialogues } from './js/dialogues.js';
 import { renderPhone } from './js/phone.js';
 import { renderWorld } from './js/world.js';
+import { renderHealth } from './js/health.js';
 import {
   validateAction,
   validateEvent,
@@ -114,6 +115,7 @@ function switchTab(tab, silent) {
     case 'dialogues': renderDialogues(); break;
     case 'phone': renderPhone(); break;
     case 'world': renderWorld(); break;
+    case 'health': renderHealth(); break;
   }
 }
 window._switchTab = switchTab;

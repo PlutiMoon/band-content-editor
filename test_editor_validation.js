@@ -4,6 +4,7 @@ const path = require('path');
 
 const root = __dirname;
 const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const actions = fs.readFileSync(path.join(root, 'js', 'actions.js'), 'utf8');
 const events = fs.readFileSync(path.join(root, 'js', 'events.js'), 'utf8');
 const dialogues = fs.readFileSync(path.join(root, 'js', 'dialogues.js'), 'utf8');
@@ -47,5 +48,10 @@ assert(
 for (const [name, source] of Object.entries({ actions, events, dialogues, world })) {
   assert(source.includes('formatDeleteBlocker'), `${name} delete handlers must use formatDeleteBlocker`);
 }
+
+assert(index.includes('data-tab="health"'), 'index.html must expose the health tab');
+assert(index.includes('value="health"'), 'mobile tab select must include health');
+assert(app.includes("import { renderHealth } from './js/health.js'"), 'app.js must import renderHealth');
+assert(app.includes("case 'health': renderHealth(); break;"), 'app.js must route the health tab');
 
 console.log('editor validation smoke test passed');
