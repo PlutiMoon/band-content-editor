@@ -7,6 +7,8 @@ async function main() {
   const { runHealthCheck } = mod;
   const repairMod = await import(pathToFileURL(path.join(__dirname, 'js', 'health_repairs.js')).href);
   const { buildHealthRepairPlan, applyHealthRepairPlan } = repairMod;
+  const gateMod = await import(pathToFileURL(path.join(__dirname, 'js', 'publish_gate.js')).href);
+  const { buildPublishGate } = gateMod;
 
   const broken = {
     actions: [
@@ -66,6 +68,7 @@ async function main() {
 
   const repairIssues = runHealthCheck(repairable);
   const repairPlan = buildHealthRepairPlan(repairable, repairIssues);
+  const repairableBeforeApply = JSON.parse(JSON.stringify(repairable));
   const repairCodes = new Set(repairPlan.repairable.map(item => item.code));
   assert(repairCodes.has('action_invalid_time_cost'));
   assert(repairCodes.has('action_invalid_max_per_day'));
@@ -85,6 +88,24 @@ async function main() {
   assert.strictEqual(repairable.maps[0].height, 270);
   assert(repairable.dialogues.dlg_bad.nodes.some(node => node.id === 'start'));
   assert(repairable.dialogues.dlg_bad.nodes.some(node => node.id === 'end'));
+
+  const warningOnly = {
+    actions: [{ id: 'practice', name: 'Practice', location: 'room', time_cost: 1, max_per_day: 1 }],
+    events: [{ id: 'custom_event', name: 'Custom', trigger_type: 'custom_debug', effects: {} }],
+    locations: [{ id: 'room', name: 'Room', map_id: 'town' }],
+    maps: [{ id: 'town', name: 'Town', width: 960, height: 270 }],
+    npcs: [],
+    phone_chats: [],
+    game_config: { starting_map: 'town', starting_location: 'room' },
+    dialogues: {},
+  };
+
+  assert.strictEqual(buildPublishGate(broken).status, 'blocked');
+  assert.strictEqual(buildPublishGate(clean).status, 'pass');
+  assert.strictEqual(buildPublishGate(warningOnly).status, 'warning');
+  const repairGate = buildPublishGate(repairableBeforeApply);
+  assert.strictEqual(repairGate.status, 'blocked');
+  assert(repairGate.repairableCount > 0);
 }
 
 main()

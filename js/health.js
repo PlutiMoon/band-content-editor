@@ -1,9 +1,9 @@
 import { data } from './state.js';
 import { esc } from './forms.js';
 import { saveDoc, toast } from './core.js';
-import { runHealthCheck } from './health_check.js';
 import { createSnapshot } from './snapshot_store.js';
 import { buildHealthRepairPlan, applyHealthRepairPlan } from './health_repairs.js';
+import { buildPublishGate, formatPublishGateMessage } from './publish_gate.js';
 
 function severityLabel(severity) {
   return severity === 'error' ? '错误' : '警告';
@@ -68,6 +68,15 @@ function renderRepairPanel(plan) {
   </div>`;
 }
 
+function renderPublishGatePanel(gate) {
+  const color = gate.status === 'blocked' ? 'var(--danger)' : gate.status === 'warning' ? 'var(--accent3)' : 'var(--ok)';
+  const label = gate.status === 'blocked' ? '未通过' : gate.status === 'warning' ? '有警告' : '可发布';
+  return `<div style="padding:12px;background:var(--bg2);border-left:3px solid ${color};margin-bottom:12px;">
+    <div style="font-weight:700;color:${color};">发布检查：${label}</div>
+    <div class="hint">${esc(formatPublishGateMessage(gate))}</div>
+  </div>`;
+}
+
 async function saveRepairResult(result) {
   const savers = {
     actions: () => saveDoc('actions', 'actions', data.actions || []),
@@ -106,8 +115,9 @@ async function applyHealthRepairs(plan) {
 }
 
 export function renderHealth() {
-  const issues = runHealthCheck(data);
-  const repairPlan = buildHealthRepairPlan(data, issues);
+  const publishGate = buildPublishGate(data);
+  const issues = publishGate.issues;
+  const repairPlan = publishGate.repairPlan || buildHealthRepairPlan(data, issues);
   const tb = document.getElementById('toolbar');
   tb.innerHTML = `<span>内容体检</span>
     <span class="hint">错误 ${issues.filter(i => i.severity === 'error').length} / 警告 ${issues.filter(i => i.severity === 'warning').length}</span>
@@ -116,6 +126,7 @@ export function renderHealth() {
   const ct = document.getElementById('content');
   ct.innerHTML = `<div style="padding:12px 0;">
     ${renderSummary(issues)}
+    ${renderPublishGatePanel(publishGate)}
     ${renderRepairPanel(repairPlan)}
     ${renderIssueTable(issues)}
   </div>`;

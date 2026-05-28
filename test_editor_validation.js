@@ -70,10 +70,14 @@ assert(app.includes("case 'health': renderHealth(); break;"), 'app.js must route
 assert(health.includes('buildHealthRepairPlan'), 'health panel must build repair plans');
 assert(health.includes('applyHealthRepairPlan'), 'health panel must apply repair plans');
 assert(health.includes('createSnapshot'), 'health repairs must snapshot before applying');
+assert(health.includes('buildPublishGate'), 'health panel must show publish gate');
 assert(app.includes("import { renderSnapshots, createManualSnapshot } from './js/snapshots.js'"), 'app.js must import snapshots UI');
 assert(app.includes("case 'snapshots': renderSnapshots(); break;"), 'app.js must route the snapshots tab');
 assert(app.includes("createSnapshot(data, { source: 'import'"), 'imports must create a snapshot before writing data');
 assert(app.includes("import { renderReferences } from './js/references.js'"), 'app.js must import references UI');
 assert(app.includes("case 'references': renderReferences(); break;"), 'app.js must route the references tab');
+assert(app.includes("import { buildPublishGate, formatPublishGateMessage } from './js/publish_gate.js'"), 'app.js must import publish gate');
+assert(app.includes('const gate = buildPublishGate(data)'), 'exportAll must run publish gate');
+assert(app.includes("switchTab('health'"), 'blocked export must send user to health tab');
 
 console.log('editor validation smoke test passed');

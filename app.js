@@ -27,6 +27,7 @@ import { renderHealth } from './js/health.js';
 import { renderSnapshots, createManualSnapshot } from './js/snapshots.js';
 import { createSnapshot } from './js/snapshot_store.js';
 import { renderReferences } from './js/references.js';
+import { buildPublishGate, formatPublishGateMessage } from './js/publish_gate.js';
 import {
   validateAction,
   validateEvent,
@@ -261,6 +262,16 @@ function importJSON(type) {
 window._importJSON = importJSON;
 
 window.exportAll = function() {
+  const gate = buildPublishGate(data);
+  if (gate.status === 'blocked') {
+    toast(formatPublishGateMessage(gate), true);
+    switchTab('health');
+    return;
+  }
+  if (gate.status === 'warning' && !confirm(formatPublishGateMessage(gate) + '\n\n继续导出？')) {
+    switchTab('health');
+    return;
+  }
   downloadJSON('actions.json', data.actions);
   toast('已导出 actions.json');
   downloadJSON('events.json', data.events);
