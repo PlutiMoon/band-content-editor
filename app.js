@@ -24,6 +24,8 @@ import { renderDialogues } from './js/dialogues.js';
 import { renderPhone } from './js/phone.js';
 import { renderWorld } from './js/world.js';
 import { renderHealth } from './js/health.js';
+import { renderSnapshots, createManualSnapshot } from './js/snapshots.js';
+import { createSnapshot } from './js/snapshot_store.js';
 import {
   validateAction,
   validateEvent,
@@ -116,6 +118,7 @@ function switchTab(tab, silent) {
     case 'phone': renderPhone(); break;
     case 'world': renderWorld(); break;
     case 'health': renderHealth(); break;
+    case 'snapshots': renderSnapshots(); break;
   }
 }
 window._switchTab = switchTab;
@@ -124,6 +127,9 @@ window._switchTab = switchTab;
 // EXPOSE TO WINDOW (for HTML onclick handlers)
 // ════════════════════════════════════════════
 window.pullFromDB = pullFromDB;
+window._createManualSnapshot = function() {
+  createManualSnapshot();
+};
 
 function asArray(payload) {
   return Array.isArray(payload) ? payload : [payload];
@@ -191,6 +197,9 @@ function importJSON(type) {
     const files = Array.from(input.files);
     if (!files.length) return;
     if (!confirm(`将导入 ${files.length} 个文件，确定？`)) return;
+
+    createSnapshot(data, { source: 'import', label: `导入前：${type} (${files.length} 个文件)` });
+    toast('已自动创建导入前快照');
 
     let imported = 0;
     for (const file of files) {

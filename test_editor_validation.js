@@ -51,7 +51,13 @@ for (const [name, source] of Object.entries({ actions, events, dialogues, world 
 
 assert(index.includes('data-tab="health"'), 'index.html must expose the health tab');
 assert(index.includes('value="health"'), 'mobile tab select must include health');
+assert(index.includes('data-tab="snapshots"'), 'index.html must expose the snapshots tab');
+assert(index.includes('value="snapshots"'), 'mobile tab select must include snapshots');
+assert(index.includes('_createManualSnapshot'), 'index.html must expose manual snapshot creation');
 assert(app.includes("import { renderHealth } from './js/health.js'"), 'app.js must import renderHealth');
 assert(app.includes("case 'health': renderHealth(); break;"), 'app.js must route the health tab');
+assert(app.includes("import { renderSnapshots, createManualSnapshot } from './js/snapshots.js'"), 'app.js must import snapshots UI');
+assert(app.includes("case 'snapshots': renderSnapshots(); break;"), 'app.js must route the snapshots tab');
+assert(app.includes("createSnapshot(data, { source: 'import'"), 'imports must create a snapshot before writing data');
 
 console.log('editor validation smoke test passed');

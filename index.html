@@ -38,6 +38,7 @@
       <button class="tab-btn" data-tab="phone">📱 手机消息</button>
       <button class="tab-btn" data-tab="world">🌍 世界</button>
       <button class="tab-btn" data-tab="health">体检</button>
+      <button class="tab-btn" data-tab="snapshots">快照</button>
       <select id="mobile-tab-select">
         <option value="actions">⚡ 行动</option>
         <option value="events">📋 事件</option>
@@ -45,6 +46,7 @@
         <option value="phone">📱 手机消息</option>
         <option value="world">🌍 世界</option>
         <option value="health">体检</option>
+        <option value="snapshots">快照</option>
       </select>
       <div id="conn-status">
         <div id="conn-dot"></div><span id="conn-text">连接中</span>
@@ -52,6 +54,7 @@
     </div>
     <div class="sidebar-actions">
       <span class="online-dots" id="online-dots" title=""></span>
+      <button onclick="window._createManualSnapshot && window._createManualSnapshot()">创建快照</button>
       <button id="btn-pull" onclick="pullFromDB()">🔄 从数据库拉取</button>
       <button class="btn-ok" onclick="exportAll()">📦 全部导出</button>
     </div>
