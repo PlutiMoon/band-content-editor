@@ -67,6 +67,12 @@ function operationColor(operation) {
   return 'var(--warn)';
 }
 
+function operationStatusClass(operation) {
+  if (operation === 'added') return 'status-success';
+  if (operation === 'removed') return 'status-error';
+  return 'status-warning';
+}
+
 function renderDiffOptions(options, selected) {
   return options
     .map(([value, label]) => `<option value="${value}" ${value === selected ? 'selected' : ''}>${label}</option>`)
@@ -169,8 +175,8 @@ function renderComparePanel(snapshots) {
   if (!snapshot) return '';
   const diff = diffContent(snapshot.data || {}, data);
   if (!diff.items.length) {
-    return `<div style="padding:12px;background:var(--bg2);border-left:3px solid var(--ok);margin-bottom:12px;">
-      <div style="font-weight:700;color:var(--ok);">对比当前：无差异</div>
+    return `<div class="status-notice status-success">
+      <div style="font-weight:700;">对比当前：<span class="status-badge status-success">无差异</span></div>
       <div class="hint">${esc(snapshotLabel(snapshot))}</div>
     </div>`;
   }
@@ -185,8 +191,8 @@ function renderComparePanel(snapshots) {
   </div>`;
   if (!visibleItems.length) {
     return `<div style="margin-bottom:12px;">
-      <div style="padding:12px;background:var(--bg2);border-left:3px solid var(--accent2);margin-bottom:8px;">
-        <div style="font-weight:700;color:var(--accent2);">对比当前：${esc(formatDiffSummary(diff))}</div>
+      <div class="status-notice status-info" style="margin-bottom:8px;">
+        <div style="font-weight:700;">对比当前：${esc(formatDiffSummary(diff))}</div>
         <div class="hint">${esc(snapshotLabel(snapshot))}</div>
       </div>
       ${filters}
@@ -202,7 +208,7 @@ function renderComparePanel(snapshots) {
       ? `<button class="btn-sm" data-diff-toggle="${esc(diffKey)}">${isExpanded ? '收起字段' : `字段 ${item.changes.length}`}</button>`
       : '';
     rows += `<tr>
-      <td style="color:${operationColor(item.operation)};font-weight:700;">${operationLabel(item.operation)}</td>
+      <td><span class="status-badge ${operationStatusClass(item.operation)}">${operationLabel(item.operation)}</span></td>
       <td>${esc(item.kindLabel)}</td>
       <td><code>${esc(item.id)}</code></td>
       <td>${detailButton}</td>
@@ -210,8 +216,8 @@ function renderComparePanel(snapshots) {
     rows += renderFieldChanges(item, diffKey);
   }
   return `<div style="margin-bottom:12px;">
-    <div style="padding:12px;background:var(--bg2);border-left:3px solid var(--accent2);margin-bottom:8px;">
-      <div style="font-weight:700;color:var(--accent2);">对比当前：${esc(formatDiffSummary(diff))}</div>
+    <div class="status-notice status-info" style="margin-bottom:8px;">
+      <div style="font-weight:700;">对比当前：${esc(formatDiffSummary(diff))}</div>
       <div class="hint">${esc(snapshotLabel(snapshot))}</div>
     </div>
     ${filters}

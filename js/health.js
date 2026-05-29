@@ -13,24 +13,34 @@ function severityLabel(severity) {
 }
 
 function severityColor(severity) {
-  return severity === 'error' ? 'var(--danger)' : 'var(--accent3)';
+  return severity === 'error' ? 'var(--danger)' : 'var(--warn)';
+}
+
+function severityStatusClass(severity) {
+  return severity === 'error' ? 'status-error' : 'status-warning';
+}
+
+function publishStatusClass(status) {
+  if (status === 'blocked') return 'status-error';
+  if (status === 'warning') return 'status-warning';
+  return 'status-success';
 }
 
 function renderSummary(issues) {
   const errors = issues.filter(i => i.severity === 'error').length;
   const warnings = issues.filter(i => i.severity === 'warning').length;
   return `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-    <div style="padding:10px 12px;background:var(--bg2);border-left:3px solid var(--danger);min-width:120px;">
+    <div class="status-notice status-error" style="min-width:120px;">
       <div style="font-size:0.75rem;color:var(--text2);">错误</div>
-      <div style="font-size:1.35rem;font-weight:700;color:var(--danger);">${errors}</div>
+      <div style="font-size:1.35rem;font-weight:700;">${errors}</div>
     </div>
-    <div style="padding:10px 12px;background:var(--bg2);border-left:3px solid var(--accent3);min-width:120px;">
+    <div class="status-notice status-warning" style="min-width:120px;">
       <div style="font-size:0.75rem;color:var(--text2);">警告</div>
-      <div style="font-size:1.35rem;font-weight:700;color:var(--accent3);">${warnings}</div>
+      <div style="font-size:1.35rem;font-weight:700;">${warnings}</div>
     </div>
-    <div style="padding:10px 12px;background:var(--bg2);border-left:3px solid var(--accent2);min-width:120px;">
+    <div class="status-notice status-info" style="min-width:120px;">
       <div style="font-size:0.75rem;color:var(--text2);">总计</div>
-      <div style="font-size:1.35rem;font-weight:700;color:var(--accent2);">${issues.length}</div>
+      <div style="font-size:1.35rem;font-weight:700;">${issues.length}</div>
     </div>
   </div>`;
 }
@@ -48,7 +58,7 @@ function renderIssueTable(issues) {
     const openBtn = contentPath ? `<button class="btn-sm health-open-content" data-issue-idx="${i}">打开</button>` : '';
     const graphBtn = graphNodeKey ? `<button class="btn-sm health-open-graph" data-issue-idx="${i}">关系图</button>` : '';
     html += `<tr>
-      <td style="color:${severityColor(item.severity)};font-weight:700;">${severityLabel(item.severity)}</td>
+      <td><span class="status-badge ${severityStatusClass(item.severity)}">${severityLabel(item.severity)}</span></td>
       <td>${esc(item.area)}</td>
       <td style="font-size:0.75rem;">${esc(item.code)}</td>
       <td>${esc(item.message)}</td>
@@ -65,10 +75,10 @@ function renderRepairPanel(plan) {
     `<li>${esc(item.description)} <span class="hint">${esc(item.message)}</span></li>`
   ).join('');
   const more = plan.repairable.length > 6 ? `<li class="hint">等 ${plan.repairable.length} 项</li>` : '';
-  return `<div style="padding:12px;background:var(--bg2);border-left:3px solid var(--accent2);margin-bottom:12px;">
+  return `<div class="status-notice status-info">
     <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
       <div>
-        <div style="font-weight:700;color:var(--accent2);">修复计划</div>
+        <div style="font-weight:700;">修复计划</div>
         <div class="hint">可自动修复 ${plan.repairable.length} 项 / 需人工处理 ${plan.manual.length} 项</div>
       </div>
       ${plan.repairable.length ? '<button class="btn-ok" id="btn-health-apply-repairs">应用自动修复</button>' : ''}
@@ -78,10 +88,9 @@ function renderRepairPanel(plan) {
 }
 
 function renderPublishGatePanel(gate) {
-  const color = gate.status === 'blocked' ? 'var(--danger)' : gate.status === 'warning' ? 'var(--accent3)' : 'var(--ok)';
   const label = gate.status === 'blocked' ? '未通过' : gate.status === 'warning' ? '有警告' : '可发布';
-  return `<div style="padding:12px;background:var(--bg2);border-left:3px solid ${color};margin-bottom:12px;">
-    <div style="font-weight:700;color:${color};">发布检查：${label}</div>
+  return `<div class="status-notice ${publishStatusClass(gate.status)}">
+    <div style="font-weight:700;">发布检查：<span class="status-badge ${publishStatusClass(gate.status)}">${label}</span></div>
     <div class="hint">${esc(formatPublishGateMessage(gate))}</div>
   </div>`;
 }
