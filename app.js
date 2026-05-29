@@ -119,7 +119,10 @@ function switchTab(tab, silent) {
   document.getElementById('toolbar').innerHTML = '';
   document.getElementById('content').innerHTML = '';
   if (!silent) {
-    document.getElementById('presence-bar').textContent = `当前用户：${userName}`;
+    document.getElementById('presence-bar').innerHTML = `
+      <span>当前用户：${esc(userName)}</span>
+      <button class="btn-sm btn-danger presence-logout" id="btn-logout" onclick="doLogout()">退出登录</button>
+    `;
   }
   switch(tab) {
     case 'actions': renderActions(); break;

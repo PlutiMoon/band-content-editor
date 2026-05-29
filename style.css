@@ -117,7 +117,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .online-names { display: none; }
 
 /* ── Presence ── */
-#presence-bar { font-size: 0.7rem; color: var(--text2); padding: 2px 16px; text-align: right; background: var(--bg2); border-bottom: 1px solid var(--border); }
+#presence-bar { font-size: 0.7rem; color: var(--text2); padding: 4px 16px; text-align: right; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+#presence-bar .presence-logout { min-height: 0; padding: 2px 8px; font-size: 0.7rem; }
 
 /* ── Mobile (≤768px) ── */
 @media (max-width: 768px) {

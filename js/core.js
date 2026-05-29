@@ -441,6 +441,44 @@ export function doLogin() {
 }
 window.doLogin = doLogin;
 
+export function doLogout() {
+  const editing = isEditing();
+  if (!confirm(editing ? '有未保存的编辑，确认退出登录吗？' : '确认退出登录吗？')) return;
+
+  sessionStorage.removeItem('band_logged_in');
+  sessionStorage.removeItem('band_user_name');
+  sessionStorage.removeItem('band_access_key');
+  localStorage.removeItem('band_logged_in');
+  localStorage.removeItem('band_user_name');
+  localStorage.removeItem('band_access_key');
+  setUserName('');
+  setEditorAccessKey('');
+  if (supabase) supabase.removeAllChannels();
+  setSupabase(null);
+
+  const app = document.getElementById('app');
+  const login = document.getElementById('login-screen');
+  const err = document.getElementById('login-error');
+  const keyInput = document.getElementById('login-key');
+  const nameInput = document.getElementById('login-name');
+  const presence = document.getElementById('presence-bar');
+  const onlineUsers = document.getElementById('online-users-desktop');
+  const onlineNames = document.getElementById('online-names');
+  if (app) app.style.display = 'none';
+  if (login) login.style.display = 'flex';
+  if (err) {
+    err.textContent = '';
+    err.style.display = 'none';
+  }
+  if (keyInput) keyInput.value = '';
+  if (nameInput) nameInput.value = '';
+  if (presence) presence.textContent = '';
+  if (onlineUsers) onlineUsers.innerHTML = '';
+  if (onlineNames) onlineNames.innerHTML = '';
+  window._appInitialized = false;
+}
+window.doLogout = doLogout;
+
 export function checkAutoLogin() {
   const savedKey = sessionStorage.getItem('band_access_key') || localStorage.getItem('band_access_key') || '';
   if (savedKey && (sessionStorage.getItem('band_logged_in') === 'true' ||
