@@ -1,7 +1,7 @@
 import { data } from './state.js';
 import { esc } from './forms.js';
 import { formatReferenceSummary } from './delete_guards.js';
-import { buildContentGraph, filterContentGraph } from './relationship_graph.js';
+import { buildContentGraph, filterContentGraph, filterIssueGraph, filterNeighborhoodGraph } from './relationship_graph.js';
 import { openContentPath } from './content_navigation.js';
 import { nodeKeyToContentPath } from './issue_navigation.js';
 
@@ -26,10 +26,24 @@ const KIND_COLORS = {
 
 let selectedKind = 'all';
 let selectedNodeKey = '';
+let selectedGraphView = 'all';
+let graphZoom = 1;
+
+const VIEW_LABELS = {
+  all: '全图',
+  issues: '只看问题',
+  neighborhood: '选中上下游',
+};
 
 function renderKindOptions() {
   return Object.entries(KIND_LABELS)
     .map(([kind, label]) => `<option value="${kind}" ${kind === selectedKind ? 'selected' : ''}>${label}</option>`)
+    .join('');
+}
+
+function renderViewOptions() {
+  return Object.entries(VIEW_LABELS)
+    .map(([view, label]) => `<option value="${view}" ${view === selectedGraphView ? 'selected' : ''}>${label}</option>`)
     .join('');
 }
 
@@ -139,6 +153,7 @@ function renderIssueList(issues) {
 export function openGraphNode(nodeKey) {
   if (!nodeKey) return false;
   selectedKind = 'all';
+  selectedGraphView = 'neighborhood';
   selectedNodeKey = nodeKey;
   if (window._switchTab) window._switchTab('graph');
   else renderGraph();
@@ -147,9 +162,13 @@ export function openGraphNode(nodeKey) {
 
 export function renderGraph() {
   const fullGraph = buildContentGraph(data);
-  const graph = filterContentGraph(fullGraph, selectedKind);
+  const kindGraph = filterContentGraph(fullGraph, selectedKind);
+  let graph = kindGraph;
+  if (selectedGraphView === 'issues') graph = filterIssueGraph(kindGraph);
+  if (selectedGraphView === 'neighborhood' && selectedNodeKey) graph = filterNeighborhoodGraph(kindGraph, selectedNodeKey);
   const visibleKeys = new Set(graph.nodes.map(node => node.key));
   if (selectedNodeKey && !visibleKeys.has(selectedNodeKey)) selectedNodeKey = '';
+  if (selectedGraphView === 'neighborhood' && !selectedNodeKey) graph = kindGraph;
 
   const nodeByKey = new Map(graph.nodes.map(node => [node.key, node]));
   const issueMap = issuesByNode(graph.issues);
@@ -157,14 +176,21 @@ export function renderGraph() {
   const selectedNode = fullGraph.nodes.find(node => node.key === selectedNodeKey);
 
   const tb = document.getElementById('toolbar');
+  const zoomLabel = `${Math.round(graphZoom * 100)}%`;
   tb.innerHTML = `<span>关系图</span>
     <span class="hint">${graph.nodes.length} 个节点 / ${graph.edges.length} 条关系 / ${graph.issues.length} 个问题</span>
-    <select id="graph-kind" style="width:120px;">${renderKindOptions()}</select>`;
+    <select id="graph-kind" style="width:120px;">${renderKindOptions()}</select>
+    <select id="graph-view" style="width:130px;">${renderViewOptions()}</select>
+    <button class="btn-sm" id="graph-zoom-out">-</button>
+    <button class="btn-sm" id="graph-zoom-reset">${zoomLabel}</button>
+    <button class="btn-sm" id="graph-zoom-in">+</button>`;
 
   const ct = document.getElementById('content');
+  const svgWidth = Math.max(graph.width, 760);
+  const svgHeight = Math.max(graph.height, 420);
   ct.innerHTML = `<div style="display:grid;grid-template-columns:minmax(520px,1fr) 280px;gap:12px;min-height:100%;">
     <div style="overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:6px;">
-      <svg width="${Math.max(graph.width, 760)}" height="${Math.max(graph.height, 420)}" viewBox="0 0 ${Math.max(graph.width, 760)} ${Math.max(graph.height, 420)}" role="img" aria-label="内容关系图">
+      <svg width="${Math.round(svgWidth * graphZoom)}" height="${Math.round(svgHeight * graphZoom)}" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="内容关系图">
         <defs>
           <marker id="graph-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(224,224,224,0.42)"></path>
@@ -188,6 +214,22 @@ export function renderGraph() {
 
   document.getElementById('graph-kind').onchange = function() {
     selectedKind = this.value;
+    renderGraph();
+  };
+  document.getElementById('graph-view').onchange = function() {
+    selectedGraphView = this.value;
+    renderGraph();
+  };
+  document.getElementById('graph-zoom-out').onclick = function() {
+    graphZoom = Math.max(0.6, Math.round((graphZoom - 0.1) * 10) / 10);
+    renderGraph();
+  };
+  document.getElementById('graph-zoom-reset').onclick = function() {
+    graphZoom = 1;
+    renderGraph();
+  };
+  document.getElementById('graph-zoom-in').onclick = function() {
+    graphZoom = Math.min(1.8, Math.round((graphZoom + 0.1) * 10) / 10);
     renderGraph();
   };
   ct.querySelectorAll('.graph-node').forEach(nodeEl => {

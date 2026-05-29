@@ -153,6 +153,13 @@ function layoutGraph(nodes, edges, issues = []) {
   };
 }
 
+function filterGraphByKeys(graph, keptKeys) {
+  const nodes = (graph.nodes || []).filter(node => keptKeys.has(node.key));
+  const edges = (graph.edges || []).filter(edge => keptKeys.has(edge.source) && keptKeys.has(edge.target));
+  const issues = (graph.issues || []).filter(issue => keptKeys.has(issue.source) || keptKeys.has(issue.target));
+  return layoutGraph(nodes, edges, issues);
+}
+
 export function buildContentGraph(project) {
   const nodeMap = new Map();
   const edgeMap = new Map();
@@ -239,4 +246,24 @@ export function filterContentGraph(graph, kind) {
     return issue.sourceKind === kind || issue.targetKind === kind;
   });
   return layoutGraph((graph.nodes || []).filter(node => keptKeys.has(node.key)), keptEdges, keptIssues);
+}
+
+export function filterIssueGraph(graph) {
+  const nodeKeys = new Set((graph.nodes || []).map(node => node.key));
+  const keptKeys = new Set();
+  for (const issue of graph.issues || []) {
+    if (nodeKeys.has(issue.source)) keptKeys.add(issue.source);
+    if (nodeKeys.has(issue.target)) keptKeys.add(issue.target);
+  }
+  return filterGraphByKeys(graph, keptKeys);
+}
+
+export function filterNeighborhoodGraph(graph, selectedKey) {
+  if (!selectedKey) return graph;
+  const keptKeys = new Set([selectedKey]);
+  for (const edge of graph.edges || []) {
+    if (edge.source === selectedKey) keptKeys.add(edge.target);
+    if (edge.target === selectedKey) keptKeys.add(edge.source);
+  }
+  return filterGraphByKeys(graph, keptKeys);
 }
