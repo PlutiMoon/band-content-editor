@@ -99,6 +99,16 @@ assert(index.includes('data-tab="releases"'), 'index.html must expose the releas
 assert(index.includes('value="releases"'), 'mobile tab select must include releases');
 assert(index.includes('data-tab="audit"'), 'index.html must expose the audit tab');
 assert(index.includes('value="audit"'), 'mobile tab select must include audit');
+assert(index.includes('<optgroup label="常用内容">'), 'mobile tab select must group common content entries');
+assert(index.includes('<optgroup label="质量工具">'), 'mobile tab select must group quality tools');
+assert(index.includes('<optgroup label="发布与历史">'), 'mobile tab select must group release and history tools');
+assert(
+  index.indexOf('value="actions"') < index.indexOf('value="health"'),
+  'mobile tab select should keep high-frequency content entries before quality tools'
+);
+assert(index.includes('mobile-sidebar-action'), 'sidebar action buttons must expose mobile action classes');
+assert(style.includes('.mobile-sidebar-action'), 'style.css must define mobile sidebar action sizing');
+assert(style.includes('.sidebar-actions-primary'), 'style.css must define primary mobile sidebar action styling');
 assert(index.includes('_createManualSnapshot'), 'index.html must expose manual snapshot creation');
 assert(app.includes("import { renderHealth } from './js/health.js'"), 'app.js must import renderHealth');
 assert(app.includes("case 'health': renderHealth(); break;"), 'app.js must route the health tab');

@@ -45,18 +45,24 @@
       <button class="tab-btn" data-tab="releases">发布</button>
       <button class="tab-btn" data-tab="audit">历史</button>
       <select id="mobile-tab-select">
-        <option value="actions">⚡ 行动</option>
-        <option value="events">📋 事件</option>
-        <option value="dialogues">💬 对话</option>
-        <option value="phone">📱 手机消息</option>
-        <option value="world">🌍 世界</option>
-        <option value="health">体检</option>
-        <option value="snapshots">快照</option>
-        <option value="references">引用</option>
-        <option value="graph">关系图</option>
-        <option value="search">搜索</option>
-        <option value="releases">发布</option>
-        <option value="audit">历史</option>
+        <optgroup label="常用内容">
+          <option value="actions">⚡ 行动</option>
+          <option value="events">📋 事件</option>
+          <option value="dialogues">💬 对话</option>
+          <option value="phone">📱 手机消息</option>
+          <option value="world">🌍 世界</option>
+        </optgroup>
+        <optgroup label="质量工具">
+          <option value="health">体检</option>
+          <option value="search">搜索</option>
+          <option value="references">引用</option>
+          <option value="graph">关系图</option>
+          <option value="snapshots">快照</option>
+        </optgroup>
+        <optgroup label="发布与历史">
+          <option value="releases">发布</option>
+          <option value="audit">历史</option>
+        </optgroup>
       </select>
       <div id="conn-status">
         <div id="conn-dot"></div><span id="conn-text">连接中</span>
@@ -64,9 +70,9 @@
     </div>
     <div class="sidebar-actions">
       <span class="online-dots" id="online-dots" title=""></span>
-      <button onclick="window._createManualSnapshot && window._createManualSnapshot()">创建快照</button>
-      <button id="btn-pull" onclick="pullFromDB()">🔄 从数据库拉取</button>
-      <button class="btn-ok" onclick="exportAll()">📦 全部导出</button>
+      <button class="mobile-sidebar-action" onclick="window._createManualSnapshot && window._createManualSnapshot()">创建快照</button>
+      <button class="mobile-sidebar-action" id="btn-pull" onclick="pullFromDB()">🔄 从数据库拉取</button>
+      <button class="btn-ok mobile-sidebar-action sidebar-actions-primary" onclick="exportAll()">📦 全部导出</button>
     </div>
     <div class="online-names" id="online-names" style="display:none;"></div>
     <div class="online-users-desktop" id="online-users-desktop"></div>
