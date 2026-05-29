@@ -19,6 +19,10 @@ const {
   buildSyncBackupName,
   buildSyncBackupPayload,
 } = require('./js/sync_backup.js');
+const {
+  buildSyncOperationRecordName,
+  formatSyncOperationRecord,
+} = require('./js/sync_operation_record.js');
 
 assert.strictEqual(classifyPatchResult({ ok: true, status: 204 }), 'updated');
 assert.strictEqual(classifyPatchResult({ ok: true, status: 200, body: '' }), 'updated');
@@ -109,6 +113,24 @@ assert.strictEqual(backupPayload.backup_type, 'band-online-sync-before-write');
 assert.strictEqual(backupPayload.asset_file_count, 2);
 assert.strictEqual(backupPayload.files[1].filename, 'dialogues/npc_陈老师.json');
 
+assert.strictEqual(
+  buildSyncOperationRecordName({ mode: 'dry-run', createdAt: backupDate }),
+  '2026-05-29-online-sync-dry-run-132556.md'
+);
+const operationRecord = formatSyncOperationRecord({
+  mode: 'write',
+  createdAt: backupDate,
+  fetchedCount: 22,
+  healthGate: { errorCount: 0, warningCount: 2, status: 'warning' },
+  projectDiff,
+  backupPath: 'D:/ALLCODE/代号：BAND/backups/online-sync/example.json',
+  writtenFiles: ['actions.json', 'dialogues/npc_陈老师.json'],
+});
+assert(operationRecord.includes('fetched documents：`22`'));
+assert(operationRecord.includes('backup：`D:/ALLCODE/代号：BAND/backups/online-sync/example.json`'));
+assert(operationRecord.includes('actions：`2(+1/~1)`'));
+assert(operationRecord.includes('dialogues/npc_陈老师.json'));
+
 const syncScript = fs.readFileSync(path.join(__dirname, 'sync_to_game.js'), 'utf8');
 assert(syncScript.includes("'--dry-run'"), 'sync_to_game.js must support --dry-run');
 assert(syncScript.includes('Dry run complete'), 'dry-run must report that no files were changed');
@@ -117,5 +139,6 @@ assert(syncScript.includes('Sync blocked'), 'health errors must block local writ
 assert(syncScript.includes('editor_list_documents'), 'pull mode must support low-privilege RPC document listing');
 assert(syncScript.includes('BAND_EDITOR_ACCESS_KEY'), 'pull mode must accept the team editor access key');
 assert(syncScript.includes('writeSyncBackup'), 'real sync writes must create a formal backup before overwriting assets');
+assert(syncScript.includes('writeSyncOperationRecord'), 'sync runs must write an operation record');
 
 console.log('sync_to_game tests passed');

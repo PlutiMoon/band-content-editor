@@ -20,6 +20,9 @@ const {
 const {
   writeSyncBackup,
 } = require('./js/sync_backup.js');
+const {
+  writeSyncOperationRecord,
+} = require('./js/sync_operation_record.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vgvghwcqcedycgpcvale.supabase.co';
 const SR_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -27,6 +30,7 @@ const BACKUP = process.argv.includes('--backup');
 const SEED = process.argv.includes('--seed');
 const DRY_RUN = process.argv.includes('--dry-run');
 const SYNC_BACKUP_DIR = process.env.BAND_SYNC_BACKUP_DIR || path.resolve(__dirname, '..', '..', 'backups', 'online-sync');
+const SYNC_OPERATION_DIR = process.env.BAND_SYNC_OPERATION_DIR || path.resolve(__dirname, '..', '..', 'docs', 'operations');
 
 function readPublishableKeyFromConfig() {
   try {
@@ -311,11 +315,29 @@ async function pullDocs(jsonDir, credentials) {
   printChangeSummary(projectDiff);
 
   if (!healthGate.canWrite) {
+    const record = writeSyncOperationRecord({
+      operationDir: SYNC_OPERATION_DIR,
+      mode: 'blocked',
+      fetchedCount: rows.length,
+      healthGate,
+      projectDiff,
+      writtenFiles: [],
+    });
+    console.log(`Operation record written: ${record.filepath}`);
     process.exitCode = 1;
     return;
   }
 
   if (DRY_RUN) {
+    const record = writeSyncOperationRecord({
+      operationDir: SYNC_OPERATION_DIR,
+      mode: 'dry-run',
+      fetchedCount: rows.length,
+      healthGate,
+      projectDiff,
+      writtenFiles: [],
+    });
+    console.log(`Operation record written: ${record.filepath}`);
     console.log('\nDry run complete. No local files were changed.');
     return;
   }
@@ -326,20 +348,33 @@ async function pullDocs(jsonDir, credentials) {
   });
   console.log(`\nFormal backup saved: ${backupResult.filepath}`);
 
-  if (rowTypes.has('actions')) writeJSON(jsonDir, 'actions.json', newData.actions);
-  if (rowTypes.has('events')) writeJSON(jsonDir, 'events.json', newData.events);
+  const writtenFiles = [];
+  if (rowTypes.has('actions')) { writeJSON(jsonDir, 'actions.json', newData.actions); writtenFiles.push('actions.json'); }
+  if (rowTypes.has('events')) { writeJSON(jsonDir, 'events.json', newData.events); writtenFiles.push('events.json'); }
   if (rowTypes.has('dialogues')) {
     for (const [id, data] of Object.entries(newData.dialogues)) {
-      writeJSON(jsonDir, `dialogues/${id}.json`, data);
+      const filename = `dialogues/${id}.json`;
+      writeJSON(jsonDir, filename, data);
+      writtenFiles.push(filename);
     }
   }
-  if (rowTypes.has('maps')) writeJSON(jsonDir, 'maps.json', newData.maps);
-  if (rowTypes.has('phone_chats')) writeJSON(jsonDir, 'phone_chat.json', newData.phone_chats);
-  if (rowTypes.has('locations')) writeJSON(jsonDir, 'locations.json', newData.locations);
-  if (rowTypes.has('npcs')) writeJSON(jsonDir, 'npcs.json', newData.npcs);
-  if (rowTypes.has('game_config')) writeJSON(jsonDir, 'game_config.json', newData.game_config);
+  if (rowTypes.has('maps')) { writeJSON(jsonDir, 'maps.json', newData.maps); writtenFiles.push('maps.json'); }
+  if (rowTypes.has('phone_chats')) { writeJSON(jsonDir, 'phone_chat.json', newData.phone_chats); writtenFiles.push('phone_chat.json'); }
+  if (rowTypes.has('locations')) { writeJSON(jsonDir, 'locations.json', newData.locations); writtenFiles.push('locations.json'); }
+  if (rowTypes.has('npcs')) { writeJSON(jsonDir, 'npcs.json', newData.npcs); writtenFiles.push('npcs.json'); }
+  if (rowTypes.has('game_config')) { writeJSON(jsonDir, 'game_config.json', newData.game_config); writtenFiles.push('game_config.json'); }
 
   if (BACKUP) console.log('\nBackups saved to assets/json/.backup/');
+  const record = writeSyncOperationRecord({
+    operationDir: SYNC_OPERATION_DIR,
+    mode: 'write',
+    fetchedCount: rows.length,
+    healthGate,
+    projectDiff,
+    backupPath: backupResult.filepath,
+    writtenFiles,
+  });
+  console.log(`Operation record written: ${record.filepath}`);
   console.log('\nSync complete. Restart Godot to see updates.');
 }
 
