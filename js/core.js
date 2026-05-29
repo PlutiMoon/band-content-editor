@@ -45,8 +45,13 @@ export function buildToolbar(cfg) {
     <span class="hint">共 ${cfg.count} 个${cfg.unit}</span>
     <input type="search" id="search-${cfg.id}" placeholder="搜索..." style="width:110px;">
     <button class="btn-ok" id="btn-add-${cfg.id}">+ ${cfg.addLabel}</button>
-    <button id="btn-import-${cfg.id}">📥 导入文件</button>
-    <button id="btn-export-${cfg.id}">📤 ${cfg.exportLabel}</button>`;
+    <details class="toolbar-menu" data-toolbar-menu="${cfg.id}">
+      <summary>更多</summary>
+      <div class="toolbar-menu-items">
+        <button id="btn-import-${cfg.id}">📥 导入文件</button>
+        <button id="btn-export-${cfg.id}">📤 ${cfg.exportLabel}</button>
+      </div>
+    </details>`;
 }
 
 // ── Loading indicator ──

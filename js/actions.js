@@ -22,7 +22,7 @@ import { createActionTemplate } from './content_templates.js';
 export function renderActions() {
   const tb = document.getElementById('toolbar');
   tb.innerHTML = buildToolbar({ icon: '⚡', label: '行动列表', unit: '行动', count: data.actions.length, id: 'action', addLabel: '新增', exportLabel: '导出文件' });
-  tb.insertAdjacentHTML('beforeend', '<button class="btn-sm" id="btn-template-action">模板行动</button>');
+  tb.querySelector('.toolbar-menu-items').insertAdjacentHTML('afterbegin', '<button id="btn-template-action">模板行动</button>');
   document.getElementById('btn-add-action').onclick = addAction;
   document.getElementById('btn-template-action').onclick = addActionFromTemplate;
   document.getElementById('btn-import-action').onclick = () => window._importJSON('actions');

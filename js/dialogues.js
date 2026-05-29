@@ -19,7 +19,7 @@ export function renderDialogues() {
   const tb = document.getElementById('toolbar');
   const allKeys = Object.keys(data.dialogues);
   tb.innerHTML = buildToolbar({ icon: '💬', label: '对话编辑器', unit: '对话', count: allKeys.length, id: 'dialogue', addLabel: '新建对话', exportLabel: '全部导出' });
-  tb.insertAdjacentHTML('beforeend', '<button class="btn-sm" id="btn-template-npc-dialogue">NPC对话模板</button>');
+  tb.querySelector('.toolbar-menu-items').insertAdjacentHTML('afterbegin', '<button id="btn-template-npc-dialogue">NPC对话模板</button>');
   document.getElementById('btn-add-dialogue').onclick = addDialogue;
   document.getElementById('btn-template-npc-dialogue').onclick = addNPCDialogueFromTemplate;
   document.getElementById('btn-import-dialogue').onclick = importDialogueFiles;

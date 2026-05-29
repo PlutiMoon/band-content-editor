@@ -75,6 +75,11 @@ assert(actions.includes('createActionTemplate'), 'actions must expose an action 
 assert(events.includes('createActionEventTemplate'), 'events must expose action-event templates');
 assert(events.includes('createLocationEventTemplate'), 'events must expose location-event templates');
 assert(dialogues.includes('createNPCDialogueTemplate'), 'dialogues must expose NPC dialogue templates');
+assert(core.includes('toolbar-menu'), 'core toolbar should support grouped secondary actions');
+assert(core.includes('data-toolbar-menu="${cfg.id}"'), 'toolbar menu should be keyed by toolbar id');
+assert(actions.includes("id: 'action'"), 'actions should use the action toolbar group');
+assert(events.includes("id: 'event'"), 'events should use the event toolbar group');
+assert(dialogues.includes("id: 'dialogue'"), 'dialogues should use the dialogue toolbar group');
 
 assert(index.includes('data-tab="health"'), 'index.html must expose the health tab');
 assert(index.includes('value="health"'), 'mobile tab select must include health');

@@ -23,7 +23,7 @@ import { createActionEventTemplate, createLocationEventTemplate } from './conten
 export function renderEvents() {
   const tb = document.getElementById('toolbar');
   tb.innerHTML = buildToolbar({ icon: '📋', label: '事件列表', unit: '事件', count: data.events.length, id: 'event', addLabel: '新增', exportLabel: '导出文件' });
-  tb.insertAdjacentHTML('beforeend', '<button class="btn-sm" id="btn-template-action-event">行动事件模板</button><button class="btn-sm" id="btn-template-location-event">地点事件模板</button>');
+  tb.querySelector('.toolbar-menu-items').insertAdjacentHTML('afterbegin', '<button id="btn-template-action-event">行动事件模板</button><button id="btn-template-location-event">地点事件模板</button>');
   document.getElementById('btn-add-event').onclick = addEvent;
   document.getElementById('btn-template-action-event').onclick = addActionEventFromTemplate;
   document.getElementById('btn-template-location-event').onclick = addLocationEventFromTemplate;
