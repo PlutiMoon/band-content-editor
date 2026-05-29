@@ -1,22 +1,7 @@
-import {
-  data,
-  setSelectedIdx,
-  setSelectedDialogueIdx,
-  setSelectedChatIdx,
-  setMobilePhoneView,
-  setMobileDialogueView,
-  setWorldSection,
-  setSelectedLocationIdx,
-  setSelectedNPCIdx,
-  setSelectedMapIdx,
-} from './state.js';
+import { data } from './state.js';
 import { esc } from './forms.js';
-import { renderActions } from './actions.js';
-import { renderEvents } from './events.js';
-import { renderDialogues } from './dialogues.js';
-import { renderPhone } from './phone.js';
-import { renderWorld } from './world.js';
-import { resolveSearchNavigation, searchContent } from './search_index.js';
+import { searchContent } from './search_index.js';
+import { openContentPath } from './content_navigation.js';
 
 const KIND_OPTIONS = [
   ['all', '全部'],
@@ -64,34 +49,6 @@ function renderResults(results) {
   return html;
 }
 
-function openSearchResult(path) {
-  const nav = resolveSearchNavigation(data, path);
-  if (!nav || !window._switchTab) return;
-  window._switchTab(nav.tab);
-
-  if (nav.tab === 'actions') {
-    setSelectedIdx(nav.selectedIdx);
-    renderActions();
-  } else if (nav.tab === 'events') {
-    setSelectedIdx(nav.selectedIdx);
-    renderEvents();
-  } else if (nav.tab === 'dialogues') {
-    setSelectedDialogueIdx(nav.selectedDialogueIdx);
-    setMobileDialogueView('nodes');
-    renderDialogues();
-  } else if (nav.tab === 'phone') {
-    setSelectedChatIdx(nav.selectedChatIdx);
-    setMobilePhoneView('chat');
-    renderPhone();
-  } else if (nav.tab === 'world') {
-    setWorldSection(nav.worldSection || 'config');
-    setSelectedLocationIdx(nav.selectedLocationIdx ?? -1);
-    setSelectedNPCIdx(nav.selectedNPCIdx ?? -1);
-    setSelectedMapIdx(nav.selectedMapIdx ?? -1);
-    renderWorld();
-  }
-}
-
 export function renderSearch() {
   const results = searchContent(data, searchQuery, { kind: selectedKind });
   const tb = document.getElementById('toolbar');
@@ -124,7 +81,7 @@ export function renderSearch() {
   ct.querySelectorAll('.search-result, .search-open').forEach(el => {
     el.onclick = function(e) {
       e.stopPropagation();
-      openSearchResult(this.dataset.searchPath);
+      openContentPath(this.dataset.searchPath);
     };
   });
 }

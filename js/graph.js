@@ -2,6 +2,8 @@ import { data } from './state.js';
 import { esc } from './forms.js';
 import { formatReferenceSummary } from './delete_guards.js';
 import { buildContentGraph, filterContentGraph } from './relationship_graph.js';
+import { openContentPath } from './content_navigation.js';
+import { nodeKeyToContentPath } from './issue_navigation.js';
 
 const KIND_LABELS = {
   all: '全部',
@@ -102,11 +104,14 @@ function renderSummary(node, fullGraph, issueMap) {
   const incoming = fullGraph.edges.filter(edge => edge.target === node.key).length;
   const nodeIssues = issueMap.get(node.key) || [];
   const issueText = nodeIssues.length ? ` · 问题 ${nodeIssues.length}` : '';
+  const contentPath = nodeKeyToContentPath(node.key);
+  const openBtn = contentPath ? `<button class="btn-sm graph-open-content" data-content-path="${esc(contentPath)}" style="margin-top:8px;">打开编辑</button>` : '';
   return `<div style="padding:12px;background:var(--bg2);border-left:3px solid ${KIND_COLORS[node.kind] || 'var(--accent2)'};">
     <div style="font-size:0.75rem;color:var(--text2);">${esc(node.kindLabel)} / ${esc(node.id)}</div>
     <div style="font-weight:700;color:var(--text);margin:2px 0 6px;">${esc(node.label)}</div>
     <div style="color:var(--accent2);font-size:0.85rem;">${esc(refs)}</div>
     <div style="color:var(--text2);font-size:0.78rem;margin-top:6px;">入边 ${incoming} · 出边 ${outgoing}${issueText}</div>
+    ${openBtn}
   </div>`;
 }
 
@@ -120,12 +125,24 @@ function renderIssueList(issues) {
     <div style="padding:8px 10px;color:var(--accent2);font-weight:700;border-bottom:1px solid var(--border);">问题列表</div>
     ${issues.map(issue => {
       const color = issue.severity === 'error' ? 'var(--danger)' : 'var(--warn)';
-      return `<button class="graph-issue" data-node-key="${esc(issue.source)}" style="display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:9px 10px;">
+      const contentPath = nodeKeyToContentPath(issue.source) || nodeKeyToContentPath(issue.target);
+      const openBtn = contentPath ? `<button class="btn-sm graph-open-content" data-content-path="${esc(contentPath)}" style="margin-top:6px;">打开编辑</button>` : '';
+      return `<div class="graph-issue" role="button" tabindex="0" data-node-key="${esc(issue.source)}" style="display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:9px 10px;cursor:pointer;">
         <div style="color:${color};font-weight:700;font-size:0.82rem;">${esc(issue.title)}</div>
         <div style="color:var(--text);font-size:0.8rem;margin-top:2px;">${esc(issue.detail)}</div>
-      </button>`;
+        ${openBtn}
+      </div>`;
     }).join('')}
   </div>`;
+}
+
+export function openGraphNode(nodeKey) {
+  if (!nodeKey) return false;
+  selectedKind = 'all';
+  selectedNodeKey = nodeKey;
+  if (window._switchTab) window._switchTab('graph');
+  else renderGraph();
+  return true;
 }
 
 export function renderGraph() {
@@ -183,6 +200,12 @@ export function renderGraph() {
     issueEl.addEventListener('click', () => {
       selectedNodeKey = issueEl.dataset.nodeKey;
       renderGraph();
+    });
+  });
+  ct.querySelectorAll('.graph-open-content').forEach(openEl => {
+    openEl.addEventListener('click', e => {
+      e.stopPropagation();
+      openContentPath(openEl.dataset.contentPath);
     });
   });
 }

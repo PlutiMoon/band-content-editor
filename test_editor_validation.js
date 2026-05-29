@@ -15,6 +15,8 @@ const health = fs.readFileSync(path.join(root, 'js', 'health.js'), 'utf8');
 const healthCheck = fs.readFileSync(path.join(root, 'js', 'health_check.js'), 'utf8');
 const graph = fs.readFileSync(path.join(root, 'js', 'graph.js'), 'utf8');
 const search = fs.readFileSync(path.join(root, 'js', 'search.js'), 'utf8');
+const contentNavigation = fs.readFileSync(path.join(root, 'js', 'content_navigation.js'), 'utf8');
+const issueNavigation = fs.readFileSync(path.join(root, 'js', 'issue_navigation.js'), 'utf8');
 const snapshots = fs.readFileSync(path.join(root, 'js', 'snapshots.js'), 'utf8');
 
 for (const name of ['validateLocation', 'validateNPC', 'validateMap', 'validateGameConfig']) {
@@ -119,8 +121,17 @@ assert(graph.includes('filterContentGraph'), 'graph UI must support relationship
 assert(app.includes("import { renderSearch } from './js/search.js'"), 'app.js must import search UI');
 assert(app.includes("case 'search': renderSearch(); break;"), 'app.js must route the search tab');
 assert(search.includes('searchContent'), 'search UI must use the global search helper');
-assert(search.includes('resolveSearchNavigation'), 'search UI must resolve result navigation');
-assert(search.includes('window._switchTab'), 'search UI must switch tabs when opening results');
+assert(search.includes('openContentPath'), 'search UI must open results through shared navigation');
+assert(contentNavigation.includes('resolveSearchNavigation'), 'shared navigation must resolve content paths');
+assert(contentNavigation.includes('window._switchTab'), 'shared navigation must switch tabs when opening content');
+assert(health.includes('issueToContentPath'), 'health issues must expose content jump targets');
+assert(health.includes('issueToGraphNodeKey'), 'health issues must expose graph jump targets');
+assert(health.includes('health-open-content'), 'health table must expose open buttons');
+assert(health.includes('health-open-graph'), 'health table must expose graph buttons');
+assert(graph.includes('openGraphNode'), 'graph UI must expose node jump helper');
+assert(graph.includes('graph-open-content'), 'graph UI must expose content open buttons');
+assert(issueNavigation.includes('issueToContentPath'), 'issue navigation must map issues to content paths');
+assert(issueNavigation.includes('issueToGraphNodeKey'), 'issue navigation must map issues to graph nodes');
 assert(app.includes("import { renderReleases } from './js/releases.js'"), 'app.js must import releases UI');
 assert(app.includes("case 'releases': renderReleases(); break;"), 'app.js must route the releases tab');
 assert(app.includes("import { renderAudit } from './js/audit.js'"), 'app.js must import audit UI');

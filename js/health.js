@@ -4,6 +4,9 @@ import { saveDoc, toast } from './core.js';
 import { createSnapshot } from './snapshot_store.js';
 import { buildHealthRepairPlan, applyHealthRepairPlan } from './health_repairs.js';
 import { buildPublishGate, formatPublishGateMessage } from './publish_gate.js';
+import { openContentPath } from './content_navigation.js';
+import { issueToContentPath, issueToGraphNodeKey } from './issue_navigation.js';
+import { openGraphNode } from './graph.js';
 
 function severityLabel(severity) {
   return severity === 'error' ? '错误' : '警告';
@@ -37,13 +40,19 @@ function renderIssueTable(issues) {
     return '<p style="color:var(--text2);text-align:center;padding:48px 16px;background:var(--bg2);">当前内容体检通过，未发现错误或警告。</p>';
   }
 
-  let html = '<table><thead><tr><th>级别</th><th>区域</th><th>代码</th><th>问题</th></tr></thead><tbody>';
-  for (const item of issues) {
+  let html = '<table><thead><tr><th>级别</th><th>区域</th><th>代码</th><th>问题</th><th>定位</th></tr></thead><tbody>';
+  for (let i = 0; i < issues.length; i++) {
+    const item = issues[i];
+    const contentPath = issueToContentPath(item);
+    const graphNodeKey = issueToGraphNodeKey(item);
+    const openBtn = contentPath ? `<button class="btn-sm health-open-content" data-issue-idx="${i}">打开</button>` : '';
+    const graphBtn = graphNodeKey ? `<button class="btn-sm health-open-graph" data-issue-idx="${i}">关系图</button>` : '';
     html += `<tr>
       <td style="color:${severityColor(item.severity)};font-weight:700;">${severityLabel(item.severity)}</td>
       <td>${esc(item.area)}</td>
       <td style="font-size:0.75rem;">${esc(item.code)}</td>
       <td>${esc(item.message)}</td>
+      <td style="white-space:nowrap;">${openBtn}${graphBtn}</td>
     </tr>`;
   }
   html += '</tbody></table>';
@@ -134,4 +143,18 @@ export function renderHealth() {
   document.getElementById('btn-health-refresh').onclick = renderHealth;
   const applyBtn = document.getElementById('btn-health-apply-repairs');
   if (applyBtn) applyBtn.onclick = () => applyHealthRepairs(repairPlan);
+  ct.querySelectorAll('.health-open-content').forEach(btn => {
+    btn.onclick = () => {
+      const issue = issues[Number(btn.dataset.issueIdx)];
+      const contentPath = issueToContentPath(issue);
+      if (contentPath) openContentPath(contentPath);
+    };
+  });
+  ct.querySelectorAll('.health-open-graph').forEach(btn => {
+    btn.onclick = () => {
+      const issue = issues[Number(btn.dataset.issueIdx)];
+      const nodeKey = issueToGraphNodeKey(issue);
+      if (nodeKey) openGraphNode(nodeKey);
+    };
+  });
 }
