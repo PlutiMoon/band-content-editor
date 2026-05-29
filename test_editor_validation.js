@@ -112,6 +112,10 @@ assert(app.includes("case 'snapshots': renderSnapshots(); break;"), 'app.js must
 assert(app.includes("createSnapshot(data, { source: 'import'"), 'imports must create a snapshot before writing data');
 assert(snapshots.includes('diffContent'), 'snapshots UI must compare snapshot content');
 assert(snapshots.includes('data-snap-compare'), 'snapshots UI must expose compare buttons');
+assert(snapshots.includes('snapshot-filter-kind'), 'snapshot compare UI must expose kind filtering');
+assert(snapshots.includes('snapshot-filter-operation'), 'snapshot compare UI must expose operation filtering');
+assert(snapshots.includes('data-diff-toggle'), 'snapshot compare UI must expose field detail toggles');
+assert(snapshots.includes('renderFieldChanges'), 'snapshot compare UI must render field-level changes');
 assert(app.includes("import { renderReferences } from './js/references.js'"), 'app.js must import references UI');
 assert(app.includes("case 'references': renderReferences(); break;"), 'app.js must route the references tab');
 assert(app.includes("import { renderGraph } from './js/graph.js'"), 'app.js must import graph UI');

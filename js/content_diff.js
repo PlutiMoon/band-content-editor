@@ -22,9 +22,25 @@ function stableStringify(value) {
   return JSON.stringify(stableValue(value));
 }
 
-function addChange(items, counts, kind, kindLabel, id, operation) {
-  items.push({ kind, kindLabel, id, operation });
+function addChange(items, counts, kind, kindLabel, id, operation, changes = []) {
+  items.push({ kind, kindLabel, id, operation, changes });
   counts[operation] += 1;
+}
+
+function diffValues(before, after, prefix = '') {
+  if (stableStringify(before) === stableStringify(after)) return [];
+  const beforeIsObject = before && typeof before === 'object' && !Array.isArray(before);
+  const afterIsObject = after && typeof after === 'object' && !Array.isArray(after);
+  if (!beforeIsObject || !afterIsObject) {
+    return [{ path: prefix || '(root)', before, after }];
+  }
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  const changes = [];
+  for (const key of [...keys].sort()) {
+    const nextPath = prefix ? `${prefix}.${key}` : key;
+    changes.push(...diffValues(before[key], after[key], nextPath));
+  }
+  return changes;
 }
 
 function mapById(items, idKey) {
@@ -44,7 +60,7 @@ function diffCollection(items, counts, kind, field, kindLabel, idKey, baseData, 
     if (!base.has(id)) addChange(items, counts, kind, kindLabel, id, 'added');
     else if (!current.has(id)) addChange(items, counts, kind, kindLabel, id, 'removed');
     else if (stableStringify(base.get(id)) !== stableStringify(current.get(id))) {
-      addChange(items, counts, kind, kindLabel, id, 'modified');
+      addChange(items, counts, kind, kindLabel, id, 'modified', diffValues(base.get(id), current.get(id)));
     }
   }
 }
@@ -57,7 +73,7 @@ function diffDialogues(items, counts, baseData, currentData) {
     if (!(id in base)) addChange(items, counts, 'dialogue', '对话', id, 'added');
     else if (!(id in current)) addChange(items, counts, 'dialogue', '对话', id, 'removed');
     else if (stableStringify(base[id]) !== stableStringify(current[id])) {
-      addChange(items, counts, 'dialogue', '对话', id, 'modified');
+      addChange(items, counts, 'dialogue', '对话', id, 'modified', diffValues(base[id], current[id]));
     }
   }
 }
@@ -70,7 +86,7 @@ export function diffContent(baseData, currentData) {
   }
   diffDialogues(items, counts, baseData, currentData);
   if (stableStringify(baseData?.game_config || {}) !== stableStringify(currentData?.game_config || {})) {
-    addChange(items, counts, 'game_config', '配置', 'game_config', 'modified');
+    addChange(items, counts, 'game_config', '配置', 'game_config', 'modified', diffValues(baseData?.game_config || {}, currentData?.game_config || {}));
   }
   return { counts, items };
 }

@@ -42,6 +42,18 @@ async function main() {
   assert.strictEqual(diff.counts.modified, 2);
   assert(formatDiffSummary(diff).includes('新增 1'));
   assert(formatDiffSummary(diff).includes('修改 2'));
+
+  const fieldBase = {
+    actions: [{ id: 'practice', name: 'Practice', effects: { stat: { energy: -1 } } }],
+  };
+  const fieldCurrent = {
+    actions: [{ id: 'practice', name: 'Practice Guitar', effects: { stat: { energy: -2 } } }],
+  };
+  const fieldDiff = diffContent(fieldBase, fieldCurrent);
+  const modifiedAction = fieldDiff.items.find(item => item.kind === 'action' && item.id === 'practice');
+  assert(modifiedAction);
+  assert(modifiedAction.changes.some(change => change.path === 'name' && change.before === 'Practice' && change.after === 'Practice Guitar'));
+  assert(modifiedAction.changes.some(change => change.path === 'effects.stat.energy' && change.before === -1 && change.after === -2));
 }
 
 main()
