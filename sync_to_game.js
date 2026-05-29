@@ -8,6 +8,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 const {
   createEmptyProject,
+  projectToAssetFiles,
   rowsToProject,
 } = require('./js/sync_project_codec.js');
 const {
@@ -16,12 +17,16 @@ const {
   formatDiff,
   buildProjectDiff,
 } = require('./js/sync_diff.js');
+const {
+  writeSyncBackup,
+} = require('./js/sync_backup.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vgvghwcqcedycgpcvale.supabase.co';
 const SR_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BACKUP = process.argv.includes('--backup');
 const SEED = process.argv.includes('--seed');
 const DRY_RUN = process.argv.includes('--dry-run');
+const SYNC_BACKUP_DIR = process.env.BAND_SYNC_BACKUP_DIR || path.resolve(__dirname, '..', '..', 'backups', 'online-sync');
 
 function readPublishableKeyFromConfig() {
   try {
@@ -314,6 +319,12 @@ async function pullDocs(jsonDir, credentials) {
     console.log('\nDry run complete. No local files were changed.');
     return;
   }
+
+  const backupResult = writeSyncBackup({
+    backupDir: SYNC_BACKUP_DIR,
+    files: projectToAssetFiles(oldData),
+  });
+  console.log(`\nFormal backup saved: ${backupResult.filepath}`);
 
   if (rowTypes.has('actions')) writeJSON(jsonDir, 'actions.json', newData.actions);
   if (rowTypes.has('events')) writeJSON(jsonDir, 'events.json', newData.events);

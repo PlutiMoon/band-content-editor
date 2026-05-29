@@ -15,6 +15,10 @@ const {
 const {
   buildProjectDiff,
 } = require('./js/sync_diff.js');
+const {
+  buildSyncBackupName,
+  buildSyncBackupPayload,
+} = require('./js/sync_backup.js');
 
 assert.strictEqual(classifyPatchResult({ ok: true, status: 204 }), 'updated');
 assert.strictEqual(classifyPatchResult({ ok: true, status: 200, body: '' }), 'updated');
@@ -89,6 +93,22 @@ const projectDiff = buildProjectDiff(oldProject, newProject);
 assert.deepStrictEqual(projectDiff.actions, { added: 1, removed: 0, changed: 1, total: 2 });
 assert.deepStrictEqual(projectDiff.dialogues, { added: 1, removed: 0, changed: 1, total: 2 });
 
+const backupDate = new Date('2026-05-29T13:25:56+08:00');
+assert.strictEqual(
+  buildSyncBackupName(backupDate),
+  'band-online-sync-before-write-20260529-132556.json'
+);
+const backupPayload = buildSyncBackupPayload({
+  createdAt: backupDate,
+  files: [
+    { filename: 'actions.json', data: [{ id: 'practice' }] },
+    { filename: 'dialogues/npc_陈老师.json', data: { nodes: [] } },
+  ],
+});
+assert.strictEqual(backupPayload.backup_type, 'band-online-sync-before-write');
+assert.strictEqual(backupPayload.asset_file_count, 2);
+assert.strictEqual(backupPayload.files[1].filename, 'dialogues/npc_陈老师.json');
+
 const syncScript = fs.readFileSync(path.join(__dirname, 'sync_to_game.js'), 'utf8');
 assert(syncScript.includes("'--dry-run'"), 'sync_to_game.js must support --dry-run');
 assert(syncScript.includes('Dry run complete'), 'dry-run must report that no files were changed');
@@ -96,5 +116,6 @@ assert(syncScript.includes('buildPublishGate'), 'sync_to_game.js must run the pu
 assert(syncScript.includes('Sync blocked'), 'health errors must block local writes');
 assert(syncScript.includes('editor_list_documents'), 'pull mode must support low-privilege RPC document listing');
 assert(syncScript.includes('BAND_EDITOR_ACCESS_KEY'), 'pull mode must accept the team editor access key');
+assert(syncScript.includes('writeSyncBackup'), 'real sync writes must create a formal backup before overwriting assets');
 
 console.log('sync_to_game tests passed');
