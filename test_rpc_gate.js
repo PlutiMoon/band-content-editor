@@ -20,5 +20,6 @@ assert(core.includes('resetLoginState'), 'core.js must clear saved login state a
 assert(core.includes('invalid editor access key'), 'core.js must recognize Supabase access-key errors');
 assert(core.includes("error?.status === 403"), 'core.js must recognize Supabase 403 access-key errors');
 assert(core.includes("removeItem('band_access_key')"), 'core.js must clear stored editor access key');
+assert(core.includes("login.style.display = 'flex'"), 'core.js must restore the centered login layout after access-key errors');
 
 console.log('RPC gate smoke test passed');

@@ -92,7 +92,7 @@ function resetLoginState(message) {
   const app = document.getElementById('app');
   const err = document.getElementById('login-error');
   if (app) app.style.display = 'none';
-  if (login) login.style.display = 'block';
+  if (login) login.style.display = 'flex';
   if (err) {
     err.textContent = message || '访问口令错误或已轮换，请重新登录';
     err.style.display = 'block';
