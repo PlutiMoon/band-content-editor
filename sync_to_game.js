@@ -5,17 +5,66 @@
 //   node 内容工具/sync_to_game.js --seed      Push local assets/json -> Supabase
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
+const {
+  createEmptyProject,
+  rowsToProject,
+} = require('./js/sync_project_codec.js');
+const {
+  diffArray,
+  diffDialogueDict,
+  formatDiff,
+  buildProjectDiff,
+} = require('./js/sync_diff.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vgvghwcqcedycgpcvale.supabase.co';
 const SR_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BACKUP = process.argv.includes('--backup');
 const SEED = process.argv.includes('--seed');
+const DRY_RUN = process.argv.includes('--dry-run');
+
+function readPublishableKeyFromConfig() {
+  try {
+    const config = fs.readFileSync(path.join(__dirname, 'js', 'config.js'), 'utf8');
+    const match = config.match(/SUPABASE_ANON_KEY\s*=\s*['"]([^'"]+)['"]/);
+    return match ? match[1] : '';
+  } catch {
+    return '';
+  }
+}
+
+const CONFIG_PUBLISHABLE_KEY = readPublishableKeyFromConfig();
 
 function requireServiceKey() {
   if (SR_KEY) return SR_KEY;
   console.error('Missing environment variable SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY.');
   console.error('Set it in PowerShell and retry, for example:');
   console.error('[Environment]::SetEnvironmentVariable("SUPABASE_SECRET_KEY", "<secret_key>", "User")');
+  process.exit(1);
+}
+
+function selectPullCredentials(env = process.env, configPublishableKey = CONFIG_PUBLISHABLE_KEY) {
+  const editorAccessKey = env.BAND_EDITOR_ACCESS_KEY || env.BAND_ACCESS_KEY || '';
+  const publishableKey = env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || configPublishableKey || '';
+  if (editorAccessKey && publishableKey) {
+    return { mode: 'rpc', publishableKey, editorAccessKey };
+  }
+
+  const serviceKey = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || '';
+  if (serviceKey) {
+    return { mode: 'service', serviceKey };
+  }
+
+  return { mode: 'missing' };
+}
+
+function requirePullCredentials() {
+  const credentials = selectPullCredentials();
+  if (credentials.mode !== 'missing') return credentials;
+
+  console.error('Missing pull credentials.');
+  console.error('For low-privilege sync, set BAND_EDITOR_ACCESS_KEY.');
+  console.error('For maintainer legacy sync, set SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY.');
   process.exit(1);
 }
 
@@ -51,6 +100,27 @@ async function fetchDocs(serviceKey) {
   return res.json();
 }
 
+async function fetchDocsViaRpc(publishableKey, editorAccessKey) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/editor_list_documents`, {
+    method: 'POST',
+    headers: {
+      apikey: publishableKey,
+      Authorization: `Bearer ${publishableKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ input_key: editorAccessKey }),
+  });
+  if (!res.ok) throw new Error(`Pull failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+async function fetchDocsWithCredentials(credentials) {
+  if (credentials.mode === 'rpc') {
+    return fetchDocsViaRpc(credentials.publishableKey, credentials.editorAccessKey);
+  }
+  return fetchDocs(credentials.serviceKey);
+}
+
 function readJSON(jsonDir, filename) {
   const fp = path.join(jsonDir, filename);
   if (!fs.existsSync(fp)) return null;
@@ -59,6 +129,26 @@ function readJSON(jsonDir, filename) {
   } catch {
     return null;
   }
+}
+
+function readProjectFromAssets(jsonDir) {
+  const project = createEmptyProject();
+  project.actions = readJSON(jsonDir, 'actions.json') || [];
+  project.events = readJSON(jsonDir, 'events.json') || [];
+  project.phone_chats = readJSON(jsonDir, 'phone_chat.json') || [];
+  project.locations = readJSON(jsonDir, 'locations.json') || [];
+  project.maps = readJSON(jsonDir, 'maps.json') || [];
+  project.npcs = readJSON(jsonDir, 'npcs.json') || [];
+  project.game_config = readJSON(jsonDir, 'game_config.json') || {};
+
+  const dialogueDir = path.join(jsonDir, 'dialogues');
+  if (fs.existsSync(dialogueDir)) {
+    fs.readdirSync(dialogueDir).filter(file => file.endsWith('.json')).forEach(file => {
+      const data = readJSON(jsonDir, `dialogues/${file}`);
+      if (data != null) project.dialogues[file.replace('.json', '')] = data;
+    });
+  }
+  return project;
 }
 
 function writeJSON(jsonDir, filename, data) {
@@ -75,47 +165,36 @@ function writeJSON(jsonDir, filename, data) {
   console.log(`  OK ${filename}`);
 }
 
-function diffArray(oldData, newData, idKey) {
-  const oldMap = new Map((oldData || []).map(x => [x[idKey] || x.id, x]));
-  const newMap = new Map((newData || []).map(x => [x[idKey] || x.id, x]));
-  let added = 0, removed = 0, changed = 0;
-  for (const [k] of newMap) {
-    if (!oldMap.has(k)) added++;
-    else if (JSON.stringify(oldMap.get(k)) !== JSON.stringify(newMap.get(k))) changed++;
-  }
-  for (const [k] of oldMap) {
-    if (!newMap.has(k)) removed++;
-  }
-  return { added, removed, changed, total: newMap.size };
-}
-
-function diffDialogueDict(oldData, newData) {
-  const oldKeys = Object.keys(oldData || {});
-  const newKeys = Object.keys(newData || {});
-  let added = 0, removed = 0, changed = 0;
-  for (const k of newKeys) {
-    if (!oldKeys.includes(k)) added++;
-    else if (JSON.stringify(oldData[k]) !== JSON.stringify(newData[k])) changed++;
-  }
-  for (const k of oldKeys) {
-    if (!newKeys.includes(k)) removed++;
-  }
-  return { added, removed, changed, total: newKeys.length };
-}
-
-function formatDiff(diff) {
-  const parts = [];
-  if (diff.added) parts.push(`+${diff.added}`);
-  if (diff.removed) parts.push(`-${diff.removed}`);
-  if (diff.changed) parts.push(`~${diff.changed}`);
-  return parts.length ? `${diff.total}(${parts.join('/')})` : `${diff.total}(+0)`;
-}
-
 function classifyPatchResult({ ok, status, body }) {
   if (!ok) return 'failed';
   if (status === 204) return 'updated';
   if (typeof body === 'string' && body.trim() === '[]') return 'missing';
   return 'updated';
+}
+
+function classifyHealthGate(gate) {
+  const errorCount = Number(gate && gate.errorCount) || 0;
+  const warningCount = Number(gate && gate.warningCount) || 0;
+  const status = errorCount > 0 ? 'blocked' : (warningCount > 0 ? 'warning' : 'pass');
+  return {
+    canWrite: errorCount === 0,
+    errorCount,
+    warningCount,
+    status,
+  };
+}
+
+async function buildSyncHealthGate(project) {
+  const gateUrl = pathToFileURL(path.join(__dirname, 'js', 'publish_gate.js')).href;
+  const { buildPublishGate } = await import(gateUrl);
+  return classifyHealthGate(buildPublishGate(project));
+}
+
+function printHealthGate(gate) {
+  console.log(`Health: ${gate.errorCount} errors, ${gate.warningCount} warnings`);
+  if (!gate.canWrite) {
+    console.log('Sync blocked: fix red health errors before writing local JSON.');
+  }
 }
 
 async function upsertDocument(serviceKey, payload) {
@@ -200,90 +279,67 @@ async function seedDocs(jsonDir, serviceKey) {
   console.log('\nUpload complete. Refresh the online editor to see the data.');
 }
 
-async function pullDocs(jsonDir, serviceKey) {
+function printChangeSummary(projectDiff) {
+  console.log('\nChange summary:');
+  console.log(`  Actions      ${formatDiff(projectDiff.actions)}`);
+  console.log(`  Events       ${formatDiff(projectDiff.events)}`);
+  console.log(`  Maps         ${formatDiff(projectDiff.maps)}`);
+  console.log(`  Dialogues    ${formatDiff(projectDiff.dialogues)}`);
+  console.log(`  Phone chats  ${formatDiff(projectDiff.phone_chats)}`);
+  console.log(`  Locations    ${formatDiff(projectDiff.locations)}`);
+  console.log(`  NPCs         ${formatDiff(projectDiff.npcs)}`);
+  console.log(`  Game config  ${projectDiff.game_config}`);
+}
+
+async function pullDocs(jsonDir, credentials) {
   console.log('Pulling data from Supabase...');
-  const rows = await fetchDocs(serviceKey);
+  const rows = await fetchDocsWithCredentials(credentials);
   console.log(`  Fetched ${rows.length} records\n`);
 
-  const newData = {};
-  for (const row of rows) {
-    const data = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-    switch (row.type) {
-      case 'actions': newData.actions = data; break;
-      case 'events': newData.events = data; break;
-      case 'dialogues': {
-        const id = row.id.replace('dialogues/', '');
-        if (!newData.dialogues) newData.dialogues = {};
-        newData.dialogues[id] = data;
-        break;
-      }
-      case 'phone_chats': newData.phone_chats = data; break;
-      case 'locations': newData.locations = data; break;
-      case 'npcs': newData.npcs = data; break;
-      case 'maps': newData.maps = data; break;
-      case 'game_config': newData.game_config = data; break;
-    }
+  const newData = rowsToProject(rows);
+  const oldData = readProjectFromAssets(jsonDir);
+  const projectDiff = buildProjectDiff(oldData, newData);
+  const rowTypes = new Set(rows.map(row => row.type));
+  const healthGate = await buildSyncHealthGate(newData);
+
+  printHealthGate(healthGate);
+  printChangeSummary(projectDiff);
+
+  if (!healthGate.canWrite) {
+    process.exitCode = 1;
+    return;
   }
 
-  const oldActions = readJSON(jsonDir, 'actions.json');
-  const oldEvents = readJSON(jsonDir, 'events.json');
-  const oldPhone = readJSON(jsonDir, 'phone_chat.json');
-  const oldLocations = readJSON(jsonDir, 'locations.json');
-  const oldMaps = readJSON(jsonDir, 'maps.json');
-  const oldNPCs = readJSON(jsonDir, 'npcs.json');
-  const oldGameConfig = readJSON(jsonDir, 'game_config.json');
-  const oldDialogues = {};
-  const dialogueDir = path.join(jsonDir, 'dialogues');
-  if (fs.existsSync(dialogueDir)) {
-    fs.readdirSync(dialogueDir).filter(f => f.endsWith('.json')).forEach(f => {
-      oldDialogues[f.replace('.json', '')] = readJSON(jsonDir, 'dialogues/' + f);
-    });
+  if (DRY_RUN) {
+    console.log('\nDry run complete. No local files were changed.');
+    return;
   }
 
-  const diffActions = diffArray(oldActions, newData.actions, 'id');
-  const diffEvents = diffArray(oldEvents, newData.events, 'id');
-  const diffPhone = diffArray(oldPhone, newData.phone_chats, 'chat_id');
-  const diffMaps = diffArray(oldMaps, newData.maps, 'id');
-  const diffLocations = diffArray(oldLocations, newData.locations, 'id');
-  const diffNPCs = diffArray(oldNPCs, newData.npcs, 'id');
-  const diffGameConfig = (oldGameConfig && newData.game_config && JSON.stringify(oldGameConfig) !== JSON.stringify(newData.game_config))
-    ? 'changed'
-    : (!oldGameConfig && newData.game_config ? 'added' : (!newData.game_config ? 'missing' : 'unchanged'));
-  const diffDials = diffDialogueDict(oldDialogues, newData.dialogues || {});
-
-  if (newData.actions) writeJSON(jsonDir, 'actions.json', newData.actions);
-  if (newData.events) writeJSON(jsonDir, 'events.json', newData.events);
-  if (newData.dialogues) {
+  if (rowTypes.has('actions')) writeJSON(jsonDir, 'actions.json', newData.actions);
+  if (rowTypes.has('events')) writeJSON(jsonDir, 'events.json', newData.events);
+  if (rowTypes.has('dialogues')) {
     for (const [id, data] of Object.entries(newData.dialogues)) {
       writeJSON(jsonDir, `dialogues/${id}.json`, data);
     }
   }
-  if (newData.maps) writeJSON(jsonDir, 'maps.json', newData.maps);
-  if (newData.phone_chats) writeJSON(jsonDir, 'phone_chat.json', newData.phone_chats);
-  if (newData.locations) writeJSON(jsonDir, 'locations.json', newData.locations);
-  if (newData.npcs) writeJSON(jsonDir, 'npcs.json', newData.npcs);
-  if (newData.game_config) writeJSON(jsonDir, 'game_config.json', newData.game_config);
+  if (rowTypes.has('maps')) writeJSON(jsonDir, 'maps.json', newData.maps);
+  if (rowTypes.has('phone_chats')) writeJSON(jsonDir, 'phone_chat.json', newData.phone_chats);
+  if (rowTypes.has('locations')) writeJSON(jsonDir, 'locations.json', newData.locations);
+  if (rowTypes.has('npcs')) writeJSON(jsonDir, 'npcs.json', newData.npcs);
+  if (rowTypes.has('game_config')) writeJSON(jsonDir, 'game_config.json', newData.game_config);
 
-  console.log('\nChange summary:');
-  console.log(`  Actions      ${formatDiff(diffActions)}`);
-  console.log(`  Events       ${formatDiff(diffEvents)}`);
-  console.log(`  Maps         ${formatDiff(diffMaps)}`);
-  console.log(`  Dialogues    ${formatDiff(diffDials)}`);
-  console.log(`  Phone chats  ${formatDiff(diffPhone)}`);
-  console.log(`  Locations    ${formatDiff(diffLocations)}`);
-  console.log(`  NPCs         ${formatDiff(diffNPCs)}`);
-  console.log(`  Game config  ${diffGameConfig}`);
   if (BACKUP) console.log('\nBackups saved to assets/json/.backup/');
   console.log('\nSync complete. Restart Godot to see updates.');
 }
 
 async function main() {
-  const serviceKey = requireServiceKey();
   const jsonDir = resolveJsonDir();
   if (SEED) {
+    const serviceKey = requireServiceKey();
     await seedDocs(jsonDir, serviceKey);
   } else {
-    await pullDocs(jsonDir, serviceKey);
+    const credentials = requirePullCredentials();
+    await pullDocs(jsonDir, credentials);
   }
 }
 
@@ -296,6 +352,8 @@ if (require.main === module) {
 
 module.exports = {
   classifyPatchResult,
+  classifyHealthGate,
+  selectPullCredentials,
   diffArray,
   diffDialogueDict,
   formatDiff,
